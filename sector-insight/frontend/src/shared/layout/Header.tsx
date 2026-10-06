@@ -1,0 +1,146 @@
+"use client"
+
+import React, { useState, useEffect } from "react"
+import Link from "next/link"
+import Image from "next/image"
+import { cn } from "@/src/shared/lib/cn"
+import { SearchInput } from "@/src/shared/ui/SearchInput"
+import { CommandPalette } from "@/src/shared/ui/CommandPalette"
+import { SyncNewsButton } from "@/src/features/sentiment"
+
+export interface HeaderProps {
+
+  className?: string
+}
+
+export const Header: React.FC<HeaderProps> = ({ className }) => {
+  const [searchValue, setSearchValue] = useState("")
+  const [isPaletteOpen, setIsPaletteOpen] = useState(false)
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault()
+        setIsPaletteOpen((prev) => !prev)
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [])
+
+  return (
+    <>
+      <header
+        className={cn(
+          "fixed top-0 left-0 right-0 h-16 z-40 bg-surface-container-lowest border-b border-border-subtle flex items-center justify-between px-margin",
+          className
+        )}
+      >
+        <div className="flex items-center gap-space-lg">
+          <Link href="/" className="flex items-center gap-space-sm hover:opacity-90 transition-opacity">
+            <Image
+              src="/assets/images/logo.svg"
+              alt="Sectors.Intel"
+              width={32}
+              height={32}
+              priority
+              className="w-8 h-8 object-contain"
+            />
+            <div className="flex items-baseline gap-space-xs">
+              <span className="font-label-ticker text-label-ticker font-bold tracking-wider text-text-primary">
+                SECTORS
+              </span>
+              <span className="font-label-ticker text-label-ticker font-bold tracking-wider text-brand-red">
+                .INTEL
+              </span>
+            </div>
+          </Link>
+
+          <div className="h-4 w-[1px] bg-border-subtle hidden lg:block" />
+
+          <div className="hidden xl:flex items-center gap-space-md">
+            <div className="flex items-center gap-space-xs px-space-sm py-space-xs bg-surface-card border border-border-subtle rounded">
+              <span className="font-caption text-caption text-text-secondary uppercase">IHSG</span>
+              <span className="font-mono text-tabular-sm text-text-primary font-medium">7.321,98</span>
+              <span className="font-mono text-tabular-sm text-data-bullish">+0,42%</span>
+            </div>
+            <div className="flex items-center gap-space-xs px-space-sm py-space-xs bg-surface-card border border-border-subtle rounded">
+              <span className="font-caption text-caption text-text-secondary uppercase">Asing Bersih</span>
+              <span className="font-mono text-tabular-sm text-data-bullish">+Rp 210M</span>
+            </div>
+          </div>
+
+          <div className="hidden md:flex items-center gap-space-xs px-space-sm py-space-xs bg-surface-card border border-border-subtle rounded cursor-pointer hover:bg-surface-container-high transition-colors">
+            <span className="font-caption text-caption text-text-secondary">Sektor:</span>
+            <span className="font-body-sm text-body-sm text-text-primary font-medium">Perbankan Big 4</span>
+            <span className="material-symbols-outlined text-[14px] text-text-secondary">arrow_drop_down</span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-space-md">
+          <div
+            className="hidden sm:flex w-72 cursor-pointer"
+            onClick={() => setIsPaletteOpen(true)}
+          >
+            <SearchInput
+              value={searchValue}
+              onChange={(e) => setSearchValue(e.target.value)}
+              onClear={() => setSearchValue("")}
+              placeholder="Cari ticker, broker, sinyal..."
+              readOnly
+            />
+          </div>
+
+          <button
+            type="button"
+            aria-label="Pencarian cepat"
+            onClick={() => setIsPaletteOpen(true)}
+            className="sm:hidden p-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-text-secondary hover:text-text-primary transition-colors cursor-pointer rounded hover:bg-surface-card focus:outline-none focus-visible:ring-1 focus-visible:ring-brand-red"
+          >
+            <span className="material-symbols-outlined text-[20px]">search</span>
+          </button>
+
+          <div className="hidden lg:flex items-center gap-space-xs px-space-sm py-space-xs border border-border-subtle rounded bg-surface-card select-none">
+            <span className="w-1.5 h-1.5 rounded-full bg-data-neutral animate-pulse" />
+            <span className="font-mono text-tabular-sm text-text-secondary">17:00:00 WIB</span>
+            <span className="text-border-subtle">•</span>
+            <span className="font-caption text-caption text-text-secondary">Pasar Tutup</span>
+          </div>
+
+          <SyncNewsButton className="hidden md:inline-flex text-caption py-1 px-2.5" />
+
+          <button
+            type="button"
+            aria-label="Notifikasi"
+            onClick={() => setIsPaletteOpen(true)}
+            className="relative p-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-text-secondary hover:text-text-primary transition-colors cursor-pointer rounded hover:bg-surface-card focus:outline-none focus-visible:ring-1 focus-visible:ring-brand-red"
+          >
+            <span className="material-symbols-outlined text-[20px]">notifications</span>
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-brand-red" />
+          </button>
+
+          <div className="flex items-center gap-space-sm pl-space-xs border-l border-border-subtle">
+            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-on-primary">
+              <span className="material-symbols-outlined text-[18px]">person</span>
+            </div>
+            <div className="hidden md:flex flex-col text-left">
+              <span className="font-caption text-caption font-medium text-text-primary leading-none">
+                Institutional Desk
+              </span>
+              <span className="font-mono text-[10px] text-text-secondary mt-0.5 leading-none">
+                ID-7729X
+              </span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <CommandPalette
+        isOpen={isPaletteOpen}
+        onClose={() => setIsPaletteOpen(false)}
+      />
+    </>
+  )
+}
+

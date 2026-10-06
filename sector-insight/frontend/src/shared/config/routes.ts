@@ -1,0 +1,17 @@
+export const ROUTES = {
+  HOME: "/",
+  DASHBOARD: "/dashboard",
+  SCREENER: "/screener",
+  STOCK_DETAIL: (ticker: string = "BBCA"): string => `/stock/${ticker}`,
+  FOREIGN_ACTIVITY: (ticker: string = "BBCA"): string => `/foreign-activity/${ticker}`,
+  FOREIGN_ACTIVITY_HUB: "/foreign-activity",
+  SIGNALS: "/signals",
+  WATCHLIST: "/watchlist",
+  METHODOLOGY: "/methodology",
+  ARTICLES: (ticker: string = "BBCA"): string => `/articles/${ticker}`,
+  ARTICLES_HUB: "/articles",
+  COMPARE: "/compare",
+  COMMUNITY: "/community",
+  SECTORS: "/sectors",
+} as const
+

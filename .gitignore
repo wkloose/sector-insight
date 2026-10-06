@@ -1,0 +1,42 @@
+# Secrets and Environment Variables
+.env
+*.env
+!.env.example
+fetch_real_news.py
+
+
+# Dependencies and Build Outputs
+node_modules/
+.next/
+dist/
+build/
+bin/
+*.exe
+*.log
+
+# Python Caches and Virtual Environments
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.py[cod]
+
+# Database Files
+*.db
+*.sqlite
+*.sqlite3
+
+# PRD Documents and Generation Scripts
+PRD*
+*PRD*
+*prd*
+*.docx
+PRD_IMPLEMENTATION_TRACKER.md
+create_prd*
+create_prd*.py
+
+# System & IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

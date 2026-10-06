@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: sector_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: sector_insight
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sector_backend
+    restart: on-failure
+    depends_on:
+      - postgres
+    environment:
+      PORT: 8080
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: sector_insight
+      DB_SSLMODE: disable
+      SECTORS_API_KEY: ${SECTORS_API_KEY}
+      AI_SERVICE_URL: http://ai-service:8000
+    ports:
+      - "8080:8080"
+
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: sector_ai_service
+    restart: on-failure
+    environment:
+      PORT: 8000
+      HOST: 0.0.0.0
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      MODEL_NAME: gemini-2.5-flash
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: sector_frontend
+    restart: on-failure
+    depends_on:
+      - backend
+    environment:
+      BACKEND_INTERNAL_URL: http://backend:8080
+      NEXT_PUBLIC_API_URL: http://localhost:8080
+    ports:
+      - "3000:3000"
+
+volumes:
+  pgdata:
+
