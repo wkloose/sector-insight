@@ -30,12 +30,12 @@ Sistem terdiri dari tiga layanan utama yang saling terhubung:
 
 ```mermaid
 graph TD
-    subgraph Sumber Data
+    subgraph DATA["Sumber Data"]
         SEC["Sectors API v2 (Berita, Laporan Keuangan, Foreign Flow, Subsektor, Broker)"]
         COM["Interaksi Komunitas (Postingan Diskusi dan Voting)"]
     end
 
-    subgraph Backend Go (Port 8080)
+    subgraph BACKEND["Backend Go - Port 8080"]
         SMRS["Mesin Rotasi Sektor (SMRS)"]
         FUND["Analisis Fundamental 7 Parameter"]
         FLOW["Detektor Anomali Foreign Flow (Z-Score)"]
@@ -43,15 +43,15 @@ graph TD
         ALERT["Mesin Peringatan 4 Pilar dan Divergensi"]
     end
 
-    subgraph Layanan AI Python (Port 8000)
+    subgraph AI["Layanan AI Python - Port 8000"]
         NLP_SENT["Klasifikasi Sentimen Berita"]
         NLP_BRIEF["Pembuat Ringkasan Ramah Pemula"]
     end
 
-    subgraph Frontend Next.js (Port 3000)
+    subgraph FRONTEND["Frontend Next.js - Port 3000"]
         UI_SECTORS["Halaman Sektor dan Heatmap (/sectors)"]
         UI_COMMUNITY["Halaman Forum Komunitas (/community)"]
-        UI_STOCK["Halaman Detail Saham: Mode Pemula dan Pro (/stock/[ticker])"]
+        UI_STOCK["Halaman Detail Saham: Mode Pemula dan Pro (/stock/ticker)"]
         UI_DASHBOARD["Dashboard Utama dan Peringatan (/dashboard)"]
     end
 
