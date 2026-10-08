@@ -1,6 +1,6 @@
-# Sector Insight: Platform Analisis Pasar Modal dan Rotasi Sektor IDX
+# Sector Intel: Platform Analisis Pasar Modal dan Rotasi Sektor IDX
 
-Sector Insight adalah platform analisis pasar modal Indonesia (Bursa Efek Indonesia / IDX) yang menggabungkan data resmi dari Sectors API, analisis statistik kuantitatif, kecerdasan buatan (NLP), dan interaksi komunitas investor.
+Sector Intel adalah platform analisis pasar modal Indonesia (Bursa Efek Indonesia / IDX) yang menggabungkan data resmi dari Sectors API, analisis statistik kuantitatif, kecerdasan buatan (NLP), dan interaksi komunitas investor.
 
 Platform ini menggunakan pendekatan analisis dari atas ke bawah (top-down analysis):
 1. Memetakan kondisi makro dan perputaran dana di 11 sektor resmi IDX-IC.
@@ -365,7 +365,7 @@ python verify_scenarios.py
 Hasil pengujian sistem:
 ```text
 ================================================================================
-SECTOR INSIGHT: 5-PILLAR & PRD 0 s.d 5 FULL INTEGRATION VERIFICATION
+SECTOR INTEL: 5-PILLAR & PRD 0 s.d 5 FULL INTEGRATION VERIFICATION
 ================================================================================
 
 [TESTING] 1. Composite Alert 4-Pillar Summary -> http://localhost:8080/api/v1/composite-alert/summary
