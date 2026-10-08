@@ -203,29 +203,110 @@ Sector/
 
 ## 5. Cara Menjalankan Aplikasi
 
-Pastikan sistem telah terpasang Go 1.24, Node.js 18+, dan Python 3.10+.
+Tersedia dua metode untuk menjalankan seluruh layanan sistem:
 
-### Langkah 1: Menjalankan Backend (Go)
-```bash
-cd sector-insight/backend
-go run ./cmd/api/main.go
-```
-* Layanan akan berjalan di `http://localhost:8080`.
-* Sistem otomatis menyiapkan tabel database, mengisi data awal untuk 11 sektor dan komunitas, serta mengaktifkan penjadwal tugas harian.
+### Metode 1: Menggunakan Docker Compose (Satu Perintah - Direkomendasikan)
 
-### Langkah 2: Menjalankan Layanan AI (Python FastAPI)
-```bash
-cd sector-insight/ai-service
-.\venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
-```
-* Layanan berjalan di `http://localhost:8000`.
+Pastikan [Docker Desktop](https://www.docker.com/products/docker-desktop/) telah terpasang dan aktif di komputer Anda.
 
-### Langkah 3: Menjalankan Antarmuka Web (Next.js)
-```bash
-cd sector-insight/frontend
-npm run dev -- -p 3000
-```
-* Buka browser dan akses `http://localhost:3000`.
+1. Buka terminal dan masuk ke direktori proyek:
+   ```bash
+   cd sector-insight
+   ```
+
+2. Jalankan seluruh container secara terpadu:
+   ```bash
+   docker-compose up --build
+   ```
+
+3. Docker akan otomatis membangun dan mengaktifkan 4 layanan:
+   * **Database PostgreSQL**: `localhost:5432`
+   * **Backend Go**: `http://localhost:8080`
+   * **Layanan AI Python FastAPI**: `http://localhost:8000`
+   * **Frontend Next.js**: `http://localhost:3000`
+
+4. Akses aplikasi web di peramban (browser):
+   ```
+   http://localhost:3000
+   ```
+
+---
+
+### Metode 2: Menjalankan Secara Manual (Tanpa Docker)
+
+Pastikan lingkungan lokal Anda telah terpasang:
+* **Go 1.24+**
+* **Python 3.10+**
+* **Node.js 18+ & npm**
+
+#### Langkah 1: Menjalankan Backend (Go - Port 8080)
+1. Masuk ke direktori backend:
+   ```bash
+   cd sector-insight/backend
+   ```
+2. *(Opsional)* Salin file konfigurasi environment:
+   ```bash
+   cp .env.example .env
+   ```
+3. Jalankan server backend:
+   ```bash
+   go run ./cmd/api/main.go
+   ```
+   * Server berjalan di `http://localhost:8080`.
+   * **Koneksi Database Otomatis**: Jika PostgreSQL lokal tidak aktif, backend otomatis melakukan fallback ke database SQLite lokal terintegrasi (`sector_insight.db`) yang telah memuat 941 saham IDX dan data historis siap pakai.
+
+#### Langkah 2: Menjalankan Layanan AI (Python FastAPI - Port 8000)
+1. Buka terminal baru dan masuk ke direktori layanan AI:
+   ```bash
+   cd sector-insight/ai-service
+   ```
+2. Buat dan aktifkan Virtual Environment Python:
+   * **Windows (PowerShell)**:
+     ```powershell
+     python -m venv venv
+     .\venv\Scripts\Activate.ps1
+     ```
+   * **Windows (CMD)**:
+     ```cmd
+     python -m venv venv
+     .\venv\Scripts\activate.bat
+     ```
+   * **Linux / macOS**:
+     ```bash
+     python3 -m venv venv
+     source venv/bin/activate
+     ```
+3. Pasang dependensi library:
+   ```bash
+   pip install -r requirements.txt
+   ```
+4. *(Opsional)* Salin konfigurasi environment & masukkan API Key:
+   ```bash
+   cp .env.example .env
+   ```
+5. Jalankan server uvicorn:
+   ```bash
+   uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+   ```
+   * Layanan AI berjalan di `http://localhost:8000`.
+
+#### Langkah 3: Menjalankan Antarmuka Web (Next.js - Port 3000)
+1. Buka terminal baru dan masuk ke direktori frontend:
+   ```bash
+   cd sector-insight/frontend
+   ```
+2. Pasang dependensi Node.js:
+   ```bash
+   npm install
+   ```
+3. Jalankan server pengembangan Next.js:
+   ```bash
+   npm run dev -- -p 3000
+   ```
+4. Buka peramban dan akses:
+   ```
+   http://localhost:3000
+   ```
 
 ---
 
@@ -235,6 +316,10 @@ Proyek ini menyediakan skrip verifikasi otomatis `verify_scenarios.py` untuk men
 
 ```bash
 cd sector-insight
+
+# Windows:
+python verify_scenarios.py
+# atau melalui venv:
 .\ai-service\venv\Scripts\python.exe verify_scenarios.py
 ```
 

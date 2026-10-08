@@ -68,28 +68,62 @@ sector-insight/
 
 ## 2. Cara Menjalankan Layanan
 
-### Langkah 1: Menjalankan Backend (Go)
+Tersedia dua metode untuk menjalankan seluruh layanan sistem:
+
+### Metode 1: Menggunakan Docker Compose (Satu Perintah - Direkomendasikan)
+
+Pastikan [Docker Desktop](https://www.docker.com/products/docker-desktop/) aktif di perangkat Anda.
+
+1. Dari direktori ini (`sector-insight`), jalankan:
+   ```bash
+   docker-compose up --build
+   ```
+2. Docker akan otomatis menyalakan 4 container:
+   * **PostgreSQL Database**: Port `5432`
+   * **Backend Go**: Port `8080` (`http://localhost:8080`)
+   * **Layanan AI Python**: Port `8000` (`http://localhost:8000`)
+   * **Frontend Next.js**: Port `3000` (`http://localhost:3000`)
+3. Buka browser pada alamat `http://localhost:3000`.
+
+---
+
+### Metode 2: Menjalankan Secara Manual (Tanpa Docker)
+
+Pastikan telah terpasang **Go 1.24+**, **Python 3.10+**, dan **Node.js 18+ & npm**.
+
+#### Langkah 1: Menjalankan Backend (Go - Port 8080)
 ```bash
 cd backend
 go run ./cmd/api/main.go
 ```
 * Server backend berjalan di `http://localhost:8080`.
-* Sistem secara otomatis menjalankan migrasi tabel, mengisi data awal (seeding) untuk 11 sektor dan akun komunitas, serta mengaktifkan penjadwal tugas otomatis.
+* **Koneksi Database Otomatis**: Jika PostgreSQL lokal tidak aktif, backend otomatis melakukan fallback ke database SQLite lokal terintegrasi (`sector_insight.db`) yang telah memuat 941 saham IDX dan data historis siap pakai.
 
-### Langkah 2: Menjalankan Antarmuka Web (Next.js)
+#### Langkah 2: Menjalankan Layanan AI (Python FastAPI - Port 8000)
+```bash
+cd ai-service
+
+# Buat virtual environment & install dependensi:
+# Windows (PowerShell):
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+
+# Linux / macOS:
+python3 -m venv venv
+source venv/bin/activate
+
+pip install -r requirements.txt
+uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+```
+* Layanan AI berjalan di `http://localhost:8000`.
+
+#### Langkah 3: Menjalankan Antarmuka Web (Next.js - Port 3000)
 ```bash
 cd frontend
 npm install
 npm run dev -- -p 3000
 ```
 * Buka browser pada alamat `http://localhost:3000`.
-
-### Langkah 3: Menjalankan Layanan AI (Python FastAPI)
-```bash
-cd ai-service
-.\venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
-```
-* Layanan AI berjalan di `http://localhost:8000`.
 
 ---
 
