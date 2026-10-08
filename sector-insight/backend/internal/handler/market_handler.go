@@ -80,15 +80,17 @@ func HandleGetMarketSummary(w http.ResponseWriter, r *http.Request) {
 
 	activeSector := "Perbankan Big 4"
 
-	ihsgIndex := 6148.92
-	ihsgChange := 0.42
-	ihsgChangePercent := "+0.42%"
-	ihsgStatus := "BULLISH"
+	ihsgIndex := 6031.28
+	ihsgChange := -115.44
+	ihsgChangePercent := "-1.88%"
+	ihsgChangePercentFloat := -1.88
+	ihsgStatus := "BEARISH"
 
 	liveIndex, liveChange, liveChangePercent, errIHSG := idx.GetIHSGOverview()
 	if errIHSG == nil && liveIndex > 0 {
 		ihsgIndex = liveIndex
 		ihsgChange = liveChange
+		ihsgChangePercentFloat = liveChangePercent
 		if liveChange >= 0 {
 			ihsgChangePercent = fmt.Sprintf("+%.2f%%", math.Abs(liveChangePercent))
 		} else {
@@ -106,12 +108,13 @@ func HandleGetMarketSummary(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 			if totalMcap > 0 {
-				ihsgChange = math.Round((weightedChange/totalMcap)*100) / 100
-				ihsgIndex = math.Round((6148.92*(1.0+ihsgChange/100.0))*100) / 100
+				ihsgChangePercentFloat = math.Round((weightedChange/totalMcap)*100) / 100
+				ihsgChange = math.Round((6031.28*ihsgChangePercentFloat/100.0)*100) / 100
+				ihsgIndex = math.Round((6031.28 + ihsgChange)*100) / 100
 				if ihsgChange >= 0 {
-					ihsgChangePercent = fmt.Sprintf("+%.2f%%", math.Abs(ihsgChange))
+					ihsgChangePercent = fmt.Sprintf("+%.2f%%", math.Abs(ihsgChangePercentFloat))
 				} else {
-					ihsgChangePercent = fmt.Sprintf("-%.2f%%", math.Abs(ihsgChange))
+					ihsgChangePercent = fmt.Sprintf("-%.2f%%", math.Abs(ihsgChangePercentFloat))
 				}
 			}
 		}
@@ -130,8 +133,8 @@ func HandleGetMarketSummary(w http.ResponseWriter, r *http.Request) {
 		ihsgStatus = "BULLISH"
 	}
 
-	totalForeignFlowIDR := 210000000000.0
-	totalForeignFlowFormatted := "+Rp 210 M"
+	totalForeignFlowIDR := -194240000000.0
+	totalForeignFlowFormatted := "-Rp 194 M"
 
 	if database.DB != nil {
 		var dbFlow float64
@@ -149,7 +152,7 @@ func HandleGetMarketSummary(w http.ResponseWriter, r *http.Request) {
 		IHSGChange:                ihsgChange,
 		IHSGChangePercent:         ihsgChangePercent,
 		IHSGChangePoints:          ihsgChange,
-		IHSGChangePercentFloat:    ihsgChange,
+		IHSGChangePercentFloat:    ihsgChangePercentFloat,
 		IHSGStatus:                ihsgStatus,
 		TotalForeignFlowIDR:       totalForeignFlowIDR,
 		TotalForeignFlow:          totalForeignFlowIDR,

@@ -248,7 +248,7 @@ export default async function DashboardPage() {
   const benchmarkPercent =
     typeof marketSummary.ihsg_change_percent === "number"
       ? `${marketSummary.ihsg_change_percent >= 0 ? "+" : ""}${marketSummary.ihsg_change_percent.toFixed(2).replace(".", ",")}%`
-      : String(marketSummary.ihsg_change_percent || "+0,42%")
+      : String(marketSummary.ihsg_change_percent || "-1,88%")
   const isBenchmarkPositive = !benchmarkPercent.startsWith("-")
   const marketStatusLabel = marketSummary.market_status || marketSummary.market_status_text || "Pasar Tutup"
   const marketTimeLabel = marketSummary.market_time || marketSummary.wib_time || "17:00:00 WIB"

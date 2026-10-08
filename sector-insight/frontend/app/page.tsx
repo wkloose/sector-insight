@@ -27,7 +27,7 @@ export default async function HomePage() {
   const ihsgChangeFormatted =
     typeof marketSummary.ihsg_change_percent === "number"
       ? `${marketSummary.ihsg_change_percent >= 0 ? "+" : ""}${marketSummary.ihsg_change_percent.toFixed(2)}%`
-      : String(marketSummary.ihsg_change_percent || "+0.49%")
+      : String(marketSummary.ihsg_change_percent || "-1.88%")
 
   return (
     <div className="min-h-screen bg-surface text-text-primary flex flex-col select-none">

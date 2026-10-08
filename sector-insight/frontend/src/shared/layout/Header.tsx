@@ -68,7 +68,7 @@ export const Header: React.FC<HeaderProps> = ({ className }) => {
           minimumFractionDigits: 2,
           maximumFractionDigits: 2,
         })
-      : String(marketSummary.ihsg_index || "6.148,92")
+      : String(marketSummary.ihsg_index || "6.031,28")
 
   const ihsgChangeRaw = (() => {
     const pct = marketSummary.ihsg_change_percent
@@ -76,7 +76,7 @@ export const Header: React.FC<HeaderProps> = ({ className }) => {
       const sign = pct >= 0 ? "+" : ""
       return `${sign}${pct.toFixed(2).replace(".", ",")}%`
     }
-    const s = String(pct || "+0,49%")
+    const s = String(pct || "-1,88%")
     if (s.includes(",")) return s.endsWith("%") ? s : s + "%"
     return s.replace(".", ",").endsWith("%") ? s.replace(".", ",") : s.replace(".", ",") + "%"
   })()
@@ -87,7 +87,7 @@ export const Header: React.FC<HeaderProps> = ({ className }) => {
     marketSummary.total_foreign_flow_formatted ||
     (typeof marketSummary.total_foreign_flow === "number"
       ? `${marketSummary.total_foreign_flow >= 0 ? "+" : "-"}Rp ${(Math.abs(marketSummary.total_foreign_flow) / 1e9).toFixed(0)} M`
-      : "+Rp 31 M")
+      : "-Rp 194 M")
   const isFlowPositive = !foreignFlowFormatted.startsWith("-")
 
   const sectorIndicator =

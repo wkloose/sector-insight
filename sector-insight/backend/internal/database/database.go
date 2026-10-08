@@ -636,17 +636,15 @@ func ensureAllBankingData(db *gorm.DB) {
 		if err := db.Where("ticker = ?", q.Ticker).First(&existing).Error; err != nil {
 			db.Create(&q)
 		} else {
-			if existing.Coverage != q.Coverage || existing.Price == 0 {
-				db.Model(&existing).Updates(map[string]interface{}{
-					"coverage":       q.Coverage,
-					"name":           q.Name,
-					"price":          q.Price,
-					"change_percent": q.ChangePercent,
-					"market_cap":     q.MarketCap,
-					"pe":             q.PE,
-					"pbv":            q.PBV,
-				})
-			}
+			db.Model(&existing).Updates(map[string]interface{}{
+				"coverage":       q.Coverage,
+				"name":           q.Name,
+				"price":          q.Price,
+				"change_percent": q.ChangePercent,
+				"market_cap":     q.MarketCap,
+				"pe":             q.PE,
+				"pbv":            q.PBV,
+			})
 		}
 	}
 }
