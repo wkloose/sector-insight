@@ -43,7 +43,7 @@ graph TD
         FLOW["Detektor Anomali Foreign Flow (Z-Score)"]
         KARMA["Sistem Kredibilitas Komunitas (Karma)"]
         ALERT["Mesin Peringatan 4 Pilar dan Divergensi"]
-        IDX_UNIV["Semesta 941 Saham IDX & Quote Engine"]
+        IDX_UNIV["Semesta Saham IDX & Quote Engine"]
     end
 
     subgraph AI["Layanan AI Python - Port 8000"]
@@ -165,7 +165,7 @@ Sector/
     |       |-- client/
     |       |   |-- sectors/           # Klien resmi Sectors API v2
     |       |   |-- ai/                # Klien komunikasi ke AI Service
-    |       |   `-- idx/               # Semesta 941 saham IDX & metadata resmi
+    |       |   `-- idx/               # Semesta saham IDX & metadata resmi
     |       |-- database/              # Koneksi database PostgreSQL dan SQLite
     |       |-- handler/               # Handler endpoint REST API (market, sectors, foreignflow, dll.)
     |       |-- jobs/                  # Penjadwal tugas otomatis (cron scheduler)
@@ -253,7 +253,7 @@ Pastikan lingkungan lokal Anda telah terpasang:
    go run ./cmd/api/main.go
    ```
    * Server berjalan di `http://localhost:8080`.
-   * **Koneksi Database Otomatis**: Jika PostgreSQL lokal tidak aktif, backend otomatis melakukan fallback ke database SQLite lokal terintegrasi (`sector_insight.db`) yang telah memuat 941 saham IDX dan data historis siap pakai.
+   * **Koneksi Database Otomatis**: Jika PostgreSQL lokal tidak aktif, backend otomatis melakukan fallback ke database SQLite lokal terintegrasi (`sector_insight.db`) yang telah memuat data saham IDX dan data historis siap pakai.
 
 #### Langkah 2: Menjalankan Layanan AI (Python FastAPI - Port 8000)
 1. Buka terminal baru dan masuk ke direktori layanan AI:
@@ -313,7 +313,7 @@ Pastikan lingkungan lokal Anda telah terpasang:
 ### Panduan Mendapatkan API Key (Opsional - Mode Data Live)
 
 > [!NOTE]
-> **Aplikasi dapat langsung berjalan 100% tanpa API Key** karena seluruh data 941 saham IDX, 11 sektor, foreign flow, fundamental, dan analisis komparatif sudah terisi lengkap di database SQLite bawaan (`sector_insight.db`) serta dilengkapi mesin kalkulasi analitis kuantitatif otomatis.
+> **Aplikasi dapat langsung berjalan 100% tanpa API Key** karena seluruh data saham IDX, 11 sektor, foreign flow, fundamental, dan analisis komparatif sudah terisi lengkap di database SQLite bawaan (`sector_insight.db`) serta dilengkapi mesin kalkulasi analitis kuantitatif otomatis.
 > Pengisian API Key bersifat opsional jika Anda ingin mengaktifkan sinkronisasi laporan finansial terbaru secara *live* dari Sectors API dan analisis naratif via Google Gemini.
 
 #### 1. Cara Mendapatkan Sectors API Key
@@ -407,7 +407,7 @@ VERIFICATION SUMMARY: 11/11 ENDPOINTS PASSED (100% SUCCESS)
 | | POST | `/api/v1/compare/ai` | Endpoint proxy orkestrasi perbandingan saham |
 | **Pasar & Semesta IDX** | GET | `/api/v1/market/summary` | Ringkasan kondisi pasar IDX, IHSG real-time, dan status |
 | | GET | `/api/v1/stocks/quotes` | Daftar quote harga dan pergerakan emiten |
-| | GET | `/api/v1/stocks/universe` | Semesta 941 saham resmi Bursa Efek Indonesia |
+| | GET | `/api/v1/stocks/universe` | Semesta saham resmi Bursa Efek Indonesia |
 | | GET | `/api/v1/stocks/sectors` | Daftar sektor dan jumlah saham emiten per sektor |
 | **Sektor (PRD 4)** | GET | `/api/v1/sectors` | Daftar 11 sektor resmi IDX-IC dan subsektor |
 | | GET | `/api/v1/sectors/ranking` | Peringkat momentum SMRS seluruh sektor |
