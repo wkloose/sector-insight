@@ -134,7 +134,7 @@ graph TD
 * Menampilkan artikel dengan kekuatan sinyal sentimen tertinggi sebagai rujukan verifikasi data.
 
 ### G. Komparasi Saham Head-to-Head & Derived Quantitative Insight Engine
-* **Pemilihan Saham Dinamis**: Pengguna dapat membandingkan 2 hingga 3 emiten secara langsung dengan modal selector saham interaktif yang terhubung ke semesta 941 saham IDX.
+* **Pemilihan Saham Dinamis**: Pengguna dapat membandingkan 2 hingga 3 emiten secara langsung dengan modal selector saham interaktif.
 * **6 Model Kuantitatif Berwawasan Baru (Derived Quantitative Insights)**:
   1. **Composite Investment Score (CIS)**: Model multi-faktor pembobotan dinamis (0–100) yang memadukan Pilar Fundamental (35%), Valuasi (25%), Momentum Arus Dana Asing (25%), dan Sentimen (15%).
   2. **Value-Momentum Convergence Index**: Mendeteksi keselarasan antara diskon valuasi fundamental dan akselerasi akumulasi modal institusi asing (*Konvergensi Bullish*, *Divergensi Positif*, *Divergensi Negatif*, *Konvergensi Bearish*).
