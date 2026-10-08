@@ -446,16 +446,34 @@ func GetSectorOverview(slug string) (*SectorOverviewDTO, error) {
 		catalyst = "Arus logistik e-commerce dan mobilitas penumpang antarkota meningkat menjelang hari libur."
 	}
 
-	now := time.Now()
 	var history []SectorHistoryPoint
-	baseSMRS := score.SMRSScore
-	for i := 29; i >= 0; i-- {
-		d := now.AddDate(0, 0, -i)
-		fluctuation := float64((i%5)-2) * 1.2
-		history = append(history, SectorHistoryPoint{
-			Date:      d.Format("2006-01-02"),
-			SMRSScore: mathRound(baseSMRS - float64(i)*0.15 + fluctuation),
-		})
+	if database.DB != nil {
+		var dbScores []model.SectorDailyScore
+		if err := database.DB.Where("sector_slug = ?", lowerSlug).Order("tanggal asc").Find(&dbScores).Error; err == nil && len(dbScores) > 0 {
+			for _, s := range dbScores {
+				dStr := s.Tanggal.Format("2006-01-02")
+				if dStr == "0001-01-01" {
+					dStr = s.CreatedAt.Format("2006-01-02")
+				}
+				history = append(history, SectorHistoryPoint{
+					Date:      dStr,
+					SMRSScore: mathRound(s.SMRSScore),
+				})
+			}
+		}
+	}
+
+	if len(history) == 0 {
+		now := time.Now()
+		baseSMRS := score.SMRSScore
+		for i := 29; i >= 0; i-- {
+			d := now.AddDate(0, 0, -i)
+			fluctuation := float64((i%5)-2) * 1.2
+			history = append(history, SectorHistoryPoint{
+				Date:      d.Format("2006-01-02"),
+				SMRSScore: mathRound(baseSMRS - float64(i)*0.15 + fluctuation),
+			})
+		}
 	}
 
 	return &SectorOverviewDTO{
