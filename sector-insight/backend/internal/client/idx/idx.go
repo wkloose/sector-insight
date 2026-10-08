@@ -45,25 +45,27 @@ func init() {
 
 var TopMarketMovers = []string{
 	// Financials
-	"BBCA", "BBRI", "BMRI", "BBNI", "BRIS", "BDMN", "BNGA", "BBTN",
+	"BBCA", "BBRI", "BMRI", "BBNI", "BRIS",
 	// Energy
 	"ADRO", "PTBA", "PGAS", "MEDC", "AKRA",
 	// Consumer Non-Cyclicals
 	"ICBP", "INDF", "UNVR", "MYOR", "AMRT",
 	// Consumer Cyclicals
-	"ACES", "MAPI", "ERAA",
+	"ACES", "MAPI", "ERAA", "AUTO", "MAPA",
 	// Basic Materials
 	"ANTM", "INCO", "MDKA", "BRPT", "TPIA",
-	// Infrastructure & Telco
+	// Infrastructures
 	"TLKM", "ISAT", "EXCL", "JSMR", "TOWR",
 	// Industrials
-	"ASII", "UNTR",
+	"ASII", "UNTR", "HEXA", "IMPC", "BNBR",
 	// Technology
-	"GOTO", "BUKA", "EMTK",
+	"GOTO", "BUKA", "EMTK", "DCII", "MTDL",
 	// Healthcare
-	"KLBF", "MIKA",
-	// Properties
-	"CTRA", "BSDE", "PWON",
+	"KLBF", "MIKA", "SILO", "SIDO", "HEAL",
+	// Properties & Real Estate
+	"CTRA", "BSDE", "PWON", "SMRA", "PANI",
+	// Transportation & Logistic
+	"BIRD", "SMDR", "TMAS", "ASSA", "GIAA",
 }
 
 var SectorIndonesianMap = map[string]string{
@@ -72,12 +74,14 @@ var SectorIndonesianMap = map[string]string{
 	"Financials":                 "Keuangan & Perbankan",
 	"Energy":                     "Energi",
 	"Infrastructure":             "Infrastruktur & Telekomunikasi",
+	"Infrastructures":            "Infrastruktur & Telekomunikasi",
 	"Properties & Real Estate":   "Properti & Real Estat",
 	"Basic Materials":            "Barang Baku",
 	"Industrials":                "Perindustrian",
 	"Technology":                 "Teknologi",
 	"Healthcare":                 "Kesehatan",
 	"Transportation & Logistics": "Transportasi & Logistik",
+	"Transportation & Logistic":  "Transportasi & Logistik",
 }
 
 var IDXBankingTickers = []string{

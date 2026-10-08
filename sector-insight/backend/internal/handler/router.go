@@ -133,6 +133,9 @@ func SetupRouter(cfg *config.Config, sectorsClient *sectors.Client, aiClient *ai
 			HandleGetStockQuoteDetail(w, r)
 		}
 	})
+	mux.HandleFunc("/api/v1/company/", func(w http.ResponseWriter, r *http.Request) {
+		HandleGetCompanyProfile(w, r)
+	})
 	mux.HandleFunc("/api/v1/glossary", func(w http.ResponseWriter, r *http.Request) {
 		HandleGetGlossary(w, r)
 	})

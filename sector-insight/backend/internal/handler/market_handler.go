@@ -535,3 +535,29 @@ func formatForeignFlowIDR(flow float64) string {
 	}
 	return fmt.Sprintf("%sRp %.0f", sign, abs)
 }
+
+func HandleGetCompanyProfile(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	path := strings.TrimPrefix(r.URL.Path, "/api/v1/company/")
+	path = strings.Trim(path, "/")
+	ticker := strings.ToUpper(strings.TrimSpace(path))
+	if ticker == "" {
+		http.Error(w, "Missing ticker", http.StatusBadRequest)
+		return
+	}
+
+	if database.DB != nil {
+		var rawJson string
+		row := database.DB.Raw("SELECT raw_report_json FROM company_profiles WHERE ticker = ?", ticker).Row()
+		if err := row.Scan(&rawJson); err == nil && rawJson != "" {
+			w.Header().Set("Content-Type", "application/json")
+			w.Write([]byte(rawJson))
+			return
+		}
+	}
+
+	HandleGetStockQuoteDetail(w, r)
+}
