@@ -26,12 +26,12 @@ export const PriceDisplay: React.FC<PriceDisplayProps> = ({
 
   return (
     <div className={cn("flex items-baseline justify-between", className)} {...props}>
-      <span className={cn("font-mono font-bold text-text-primary", sizeClasses[size])}>
+      <span className={cn("font-mono tracking-tight font-semibold text-text-primary", sizeClasses[size])}>
         {formattedPrice}
       </span>
       <div
         className={cn(
-          "flex items-center font-mono text-tabular-sm font-medium",
+          "flex items-center font-mono tracking-tight font-semibold text-tabular-sm",
           isPositive ? "text-data-bullish" : "text-data-bearish"
         )}
       >
@@ -43,4 +43,3 @@ export const PriceDisplay: React.FC<PriceDisplayProps> = ({
     </div>
   )
 }
-

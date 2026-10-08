@@ -93,4 +93,3 @@ export const ScoreBreakdown: React.FC<ScoreBreakdownProps> = ({
     </div>
   )
 }
-

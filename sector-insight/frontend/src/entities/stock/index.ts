@@ -2,4 +2,5 @@ export * from "./model"
 export * from "./components/TickerBadge"
 export * from "./components/PriceDisplay"
 export * from "./components/StockCard"
-
+export * from "./components/AnomalyBadge"
+export * from "./components/DashboardStockSection"

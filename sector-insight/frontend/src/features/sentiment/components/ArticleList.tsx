@@ -181,4 +181,3 @@ export const ArticleList: React.FC<ArticleListProps> = ({ articles }) => {
     </div>
   )
 }
-

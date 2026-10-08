@@ -36,4 +36,3 @@ export const BrokerDetail: React.FC<BrokerDetailProps> = ({ broker, className })
     </div>
   )
 }
-

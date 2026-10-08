@@ -92,7 +92,7 @@ func CalculateCrowdSentimentAggregates(ticker string) (*model.DailyCrowdSentimen
 	}
 	zBuzz = math.Round(zBuzz*100) / 100
 
-	divergenceStatus := DetectDivergenceStatus(upperTicker, css, zBuzz)
+	divergenceStatus := DetectDivergenceStatus(upperTicker, css, zBuzz, bullishPercent)
 
 	crowdRecord := &model.DailyCrowdSentiment{
 		Ticker:           upperTicker,

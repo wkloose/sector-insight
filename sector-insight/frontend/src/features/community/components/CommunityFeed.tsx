@@ -3,6 +3,7 @@
 import React, { useState } from "react"
 import { CommunityPost, SentimentTag, SortOrder } from "../types"
 import { createCommunityPost, voteCommunityPost } from "../services/communityApi"
+import { sanitizeTextInput, sanitizeTicker } from "@/src/shared/lib/security"
 
 interface CommunityFeedProps {
   initialPosts: CommunityPost[]
@@ -49,14 +50,17 @@ export function CommunityFeed({ initialPosts, ticker }: CommunityFeedProps) {
 
   const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newTitle.trim() || !newContent.trim()) return
+    const cleanTitle = sanitizeTextInput(newTitle, 150)
+    const cleanContent = sanitizeTextInput(newContent, 2000)
+    const cleanTicker = sanitizeTicker(newTicker) || "BBRI"
+    if (!cleanTitle.trim() || !cleanContent.trim()) return
 
     setIsSubmitting(true)
     try {
       const created = await createCommunityPost({
-        ticker: newTicker,
-        title: newTitle,
-        content: newContent,
+        ticker: cleanTicker,
+        title: cleanTitle,
+        content: cleanContent,
         sentiment_tag: newSentiment,
         username: "ritel_analis",
       })
@@ -64,7 +68,7 @@ export function CommunityFeed({ initialPosts, ticker }: CommunityFeedProps) {
       setNewTitle("")
       setNewContent("")
       setShowCreateForm(false)
-    } catch (err) {
+    } catch {
       alert("Gagal mempublikasikan postingan. Pastikan form terisi lengkap.")
     } finally {
       setIsSubmitting(false)
@@ -85,7 +89,6 @@ export function CommunityFeed({ initialPosts, ticker }: CommunityFeedProps) {
 
   return (
     <div className="flex flex-col gap-space-md w-full">
-
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 bg-surface-card rounded-xl border border-border-subtle shadow-sm">
         <div className="flex items-center gap-1 bg-surface-container-lowest p-1 rounded-lg border border-border-subtle/50">
           {(["hot", "top", "new", "controversial"] as SortOrder[]).map((sort) => (
@@ -136,6 +139,7 @@ export function CommunityFeed({ initialPosts, ticker }: CommunityFeedProps) {
               <input
                 type="text"
                 value={newTicker}
+                maxLength={6}
                 onChange={(e) => setNewTicker(e.target.value.toUpperCase())}
                 placeholder="Contoh: BBRI, BBCA"
                 className="w-full px-3 py-2 bg-surface-container-lowest border border-border-subtle rounded-lg text-body-sm text-text-primary uppercase font-mono"
@@ -176,6 +180,7 @@ export function CommunityFeed({ initialPosts, ticker }: CommunityFeedProps) {
             <input
               type="text"
               value={newTitle}
+              maxLength={150}
               onChange={(e) => setNewTitle(e.target.value)}
               placeholder="Sebutkan tesis utama investasi Anda..."
               className="w-full px-3 py-2 bg-surface-container-lowest border border-border-subtle rounded-lg text-body-sm text-text-primary"
@@ -190,6 +195,7 @@ export function CommunityFeed({ initialPosts, ticker }: CommunityFeedProps) {
             <textarea
               rows={3}
               value={newContent}
+              maxLength={2000}
               onChange={(e) => setNewContent(e.target.value)}
               placeholder="Tuliskan analisis mendalam tanpa klaim pom-pom atau ajakan spekulatif..."
               className="w-full px-3 py-2 bg-surface-container-lowest border border-border-subtle rounded-lg text-body-sm text-text-primary"
@@ -232,7 +238,6 @@ export function CommunityFeed({ initialPosts, ticker }: CommunityFeedProps) {
                 key={post.id}
                 className="bg-surface-card rounded-xl border border-border-subtle p-space-md flex gap-3 hover:border-border-subtle/80 transition-all shadow-sm"
               >
-
                 <div className="flex flex-col items-center justify-start bg-surface-container-lowest/80 p-1.5 rounded-lg border border-border-subtle/40 shrink-0">
                   <button
                     type="button"
@@ -277,7 +282,6 @@ export function CommunityFeed({ initialPosts, ticker }: CommunityFeedProps) {
 
                 <div className="flex flex-col justify-between flex-1 gap-2">
                   <div>
-
                     <div className="flex flex-wrap items-center gap-2 text-caption text-text-secondary mb-1">
                       <span className="font-mono font-bold text-text-primary px-1.5 py-0.2 bg-surface-container-lowest rounded border border-border-subtle/50">
                         ${post.ticker}
@@ -339,4 +343,3 @@ export function CommunityFeed({ initialPosts, ticker }: CommunityFeedProps) {
     </div>
   )
 }
-

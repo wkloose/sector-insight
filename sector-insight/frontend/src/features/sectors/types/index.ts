@@ -1,5 +1,19 @@
 export type SectorStatus = "LEADING" | "IMPROVING" | "NEUTRAL" | "WEAKENING" | "LAGGING"
 
+export interface SectorStockItem {
+  ticker: string
+  name: string
+  subsector: string
+  price: number
+  change_percent: number
+  change: number
+  market_cap: number
+  fundamental_score: number
+  health_status: string
+  volume: number
+  status: string
+}
+
 export interface SectorItem {
   sector_slug: string
   sector_name: string
@@ -10,6 +24,10 @@ export interface SectorItem {
   net_foreign_flow: number
   price_return_7d: number
   top_movers: string[]
+  top_laggards?: string[]
+  total_companies?: number
+  avg_fundamental_score?: number
+  market_cap_total?: number
 }
 
 export interface SectorHistoryPoint {
@@ -20,6 +38,7 @@ export interface SectorHistoryPoint {
 export interface SectorOverview extends SectorItem {
   catalyst: string
   history_30d: SectorHistoryPoint[]
+  stocks?: SectorStockItem[]
 }
 
 export interface SectorNewsItem {
@@ -40,4 +59,3 @@ export interface SectorRotationAlert {
   target_sector?: string
   created_at: string
 }
-

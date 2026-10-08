@@ -79,4 +79,3 @@ export const PolicyExposureCard: React.FC<PolicyExposureCardProps> = ({
     </div>
   )
 }
-

@@ -73,4 +73,3 @@ export const CardFooter: React.FC<CardFooterProps> = ({ className, children, ...
     </div>
   )
 }
-

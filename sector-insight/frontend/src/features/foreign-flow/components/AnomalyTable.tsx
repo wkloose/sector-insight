@@ -26,7 +26,7 @@ export const AnomalyTable: React.FC<AnomalyTableProps> = ({
             Konfirmasi Broker Dominan (Jendela 14 Hari Terakhir)
           </h3>
         </div>
-        <span className="font-mono text-[11px] px-2 py-0.5 rounded bg-surface-container-high text-data-bullish border border-border-subtle">
+        <span className="font-mono tracking-tight text-[11px] px-2 py-0.5 rounded bg-surface-container-high text-data-bullish border border-border-subtle font-semibold">
           Sectors Broker API Terkoneksi
         </span>
       </div>
@@ -59,18 +59,18 @@ export const AnomalyTable: React.FC<AnomalyTableProps> = ({
                     key={anom.id}
                     className="hover:bg-surface-container-low transition-colors"
                   >
-                  <td className="px-space-md py-space-sm font-mono text-[12px] text-text-primary font-medium">
+                  <td className="px-space-md py-space-sm font-mono tracking-tight text-[12px] text-text-primary font-medium">
                     <div className="flex items-center gap-1.5">
                       <span
                         className={`w-2 h-2 rounded-full ${
-                          isSell ? "bg-data-bearish" : "bg-data-bullish"
+                          isSell ? "bg-data-bearish shadow-[0_0_6px_rgba(194,59,59,0.5)]" : "bg-data-bullish shadow-[0_0_6px_rgba(63,174,106,0.5)]"
                         }`}
                       />
                       <span>{anom.displayDate}</span>
                     </div>
                   </td>
 
-                  <td className="px-space-md py-space-sm font-mono text-tabular-sm font-bold">
+                  <td className="px-space-md py-space-sm font-mono tracking-tight font-semibold text-tabular-sm">
                     <span
                       className={
                         isSell ? "text-data-bearish" : "text-data-bullish"
@@ -80,12 +80,12 @@ export const AnomalyTable: React.FC<AnomalyTableProps> = ({
                     </span>
                   </td>
 
-                  <td className="px-space-md py-space-sm font-mono text-tabular-sm">
+                  <td className="px-space-md py-space-sm font-mono tracking-tight text-tabular-sm">
                     <span
-                      className={`px-1.5 py-0.5 rounded font-semibold ${
+                      className={`inline-flex items-center px-1.5 py-0.5 rounded font-mono tracking-tight font-semibold border ${
                         isSell
-                          ? "bg-data-bearish/15 text-data-bearish"
-                          : "bg-data-bullish/15 text-data-bullish"
+                          ? "bg-data-bearish/15 text-data-bearish border-data-bearish/50 glow-anomaly-outflow"
+                          : "bg-data-bullish/15 text-data-bullish border-data-bullish/50 glow-anomaly-inflow"
                       }`}
                     >
                       {anom.zScore >= 0 ? `+${anom.zScore}` : anom.zScore}σ
@@ -94,7 +94,7 @@ export const AnomalyTable: React.FC<AnomalyTableProps> = ({
 
                   <td className="px-space-md py-space-sm">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-tabular-sm font-bold px-1.5 py-0.5 rounded bg-surface-container-high text-text-primary">
+                      <span className="font-mono tracking-tight text-tabular-sm font-bold px-1.5 py-0.5 rounded bg-surface-container-high text-text-primary">
                         {anom.dominantBroker.code}
                       </span>
                       <span className="text-text-primary">
@@ -107,7 +107,7 @@ export const AnomalyTable: React.FC<AnomalyTableProps> = ({
                     {anom.dominantBroker.category}
                   </td>
 
-                  <td className="px-space-md py-space-sm text-right font-mono text-tabular-sm font-bold">
+                  <td className="px-space-md py-space-sm text-right font-mono tracking-tight font-semibold text-tabular-sm">
                     <span
                       className={
                         isSell ? "text-data-bearish" : "text-data-bullish"
@@ -134,4 +134,3 @@ export const AnomalyTable: React.FC<AnomalyTableProps> = ({
     </div>
   )
 }
-

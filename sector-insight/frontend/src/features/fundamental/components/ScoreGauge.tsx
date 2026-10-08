@@ -73,4 +73,3 @@ export const ScoreGauge: React.FC<ScoreGaugeProps> = ({
     </div>
   )
 }
-

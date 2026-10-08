@@ -63,4 +63,3 @@ export const RadarChart: React.FC<RadarChartProps> = ({ dimensions, className })
     </div>
   )
 }
-

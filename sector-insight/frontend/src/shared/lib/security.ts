@@ -30,3 +30,42 @@ export function sanitizeExternalUrl(url: unknown, fallback: string = "#"): strin
   return fallback
 }
 
+export function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;")
+}
+
+export function sanitizeSearchInput(query: unknown, maxLength: number = 100): string {
+  if (typeof query !== "string") {
+    return ""
+  }
+  const cleaned = query
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "")
+    .replace(/[<>]/g, "")
+    .slice(0, maxLength)
+  return cleaned
+}
+
+export function sanitizeTextInput(input: unknown, maxLength: number = 2000): string {
+  if (typeof input !== "string") {
+    return ""
+  }
+  return input
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "")
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "")
+    .replace(/<\/?([a-zA-Z][a-zA-Z0-9]*)\b[^>]*\/?>/gi, "")
+    .replace(/javascript\s*:/gi, "")
+    .replace(/vbscript\s*:/gi, "")
+    .replace(/data\s*:\s*text\/html/gi, "")
+    .slice(0, maxLength)
+    .trim()
+}
+
+export function sanitizeHtml(input: unknown, maxLength: number = 2000): string {
+  return escapeHtml(sanitizeTextInput(input, maxLength))
+}

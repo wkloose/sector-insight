@@ -1,6 +1,7 @@
 package model
 
 import (
+	"math"
 	"time"
 )
 
@@ -190,9 +191,225 @@ type SectorDailyScore struct {
 	SMRSScore      float64   `json:"smrs_score"`
 	SentimentScore float64   `json:"sentiment_score"`
 	NetForeignFlow float64   `json:"net_foreign_flow"`
-	PriceReturn7D  float64   `json:"price_return_7d"`
+	PriceReturn7D  float64   `json:"price_return_7d" gorm:"column:price_return7_d"`
 	Status         string    `json:"status" gorm:"size:50"`
 	TopMovers      string    `gorm:"type:text" json:"top_movers"`
 	CreatedAt      time.Time `json:"created_at"`
 }
+
+type StockQuote struct {
+	ID              uint      `gorm:"primaryKey" json:"id"`
+	Ticker          string    `gorm:"uniqueIndex;size:10" json:"ticker"`
+	Name            string    `gorm:"size:100" json:"name,omitempty"`
+	Sector          string    `gorm:"size:100" json:"sector,omitempty"`
+	Price           float64   `json:"price"`
+	Change          float64   `gorm:"-" json:"change"`
+	ChangePercent   float64   `json:"change_percent"`
+	Coverage        int       `json:"coverage"`
+	AnalystCoverage int       `gorm:"-" json:"analyst_coverage"`
+	Volume          float64   `json:"volume,omitempty"`
+	High52w         float64   `json:"high_52w,omitempty"`
+	Low52w          float64   `json:"low_52w,omitempty"`
+	MarketCap       float64   `json:"market_cap"`
+	PE              float64   `json:"pe"`
+	PBV             float64   `json:"pbv"`
+	Status          string    `json:"status,omitempty"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
+}
+
+func (StockQuote) TableName() string {
+	return "stock_quotes"
+}
+
+func (s *StockQuote) PopulateComputedFields() {
+	if s.AnalystCoverage == 0 && s.Coverage > 0 {
+		s.AnalystCoverage = s.Coverage
+	}
+	if s.Change == 0 && s.Price > 0 && s.ChangePercent != 0 {
+		prevPrice := s.Price / (1.0 + s.ChangePercent/100.0)
+		s.Change = math.Round(s.Price - prevPrice)
+	}
+	if s.Status == "" {
+		if s.ChangePercent > 0.5 {
+			s.Status = "Stabil"
+		} else if s.ChangePercent < -1.0 {
+			s.Status = "Perhatian"
+		} else {
+			s.Status = "Netral"
+		}
+	}
+}
+
+type MarketSummaryResponse struct {
+	IHSGIndex                 float64 `json:"ihsg_index"`
+	IHSGChange                float64 `json:"ihsg_change"`
+	IHSGChangePercent         string  `json:"ihsg_change_percent"`
+	IHSGChangePoints          float64 `json:"ihsg_change_points,omitempty"`
+	IHSGChangePercentFloat    float64 `json:"ihsg_change_percent_float"`
+	IHSGStatus                string  `json:"ihsg_status"`
+	TotalForeignFlowIDR       float64 `json:"total_foreign_flow_idr"`
+	TotalForeignFlow          float64 `json:"total_foreign_flow,omitempty"`
+	TotalForeignFlowFormatted string  `json:"total_foreign_flow_formatted"`
+	MarketSession             string  `json:"market_session"`
+	MarketStatusText          string  `json:"market_status_text"`
+	MarketStatus              string  `json:"market_status,omitempty"`
+	WIBTime                   string  `json:"wib_time"`
+	MarketTime                string  `json:"market_time,omitempty"`
+	LeadingSector             string  `json:"leading_sector"`
+	SectorLeader              string  `json:"sector_leader,omitempty"`
+	TopSector                 string  `json:"top_sector,omitempty"`
+	ActiveSector              string  `json:"active_sector"`
+}
+
+func GetDefaultStockQuotes() []StockQuote {
+	now := time.Now()
+	quotes := []StockQuote{
+		{
+			Ticker:          "BBCA",
+			Name:            "PT Bank Central Asia Tbk",
+			Price:           6050,
+			Change:          -50,
+			ChangePercent:   -0.82,
+			Coverage:        28,
+			AnalystCoverage: 28,
+			MarketCap:       745000000000000,
+			PE:              18.8,
+			PBV:             3.1,
+			CreatedAt:       now,
+			UpdatedAt:       now,
+		},
+		{
+			Ticker:          "BBRI",
+			Name:            "PT Bank Rakyat Indonesia Tbk",
+			Price:           3140,
+			Change:          30,
+			ChangePercent:   0.96,
+			Coverage:        28,
+			AnalystCoverage: 28,
+			MarketCap:       476000000000000,
+			PE:              9.42,
+			PBV:             1.88,
+			CreatedAt:       now,
+			UpdatedAt:       now,
+		},
+		{
+			Ticker:          "BMRI",
+			Name:            "PT Bank Mandiri (Persero) Tbk",
+			Price:           4110,
+			Change:          10,
+			ChangePercent:   0.24,
+			Coverage:        28,
+			AnalystCoverage: 28,
+			MarketCap:       383000000000000,
+			PE:              9.85,
+			PBV:             1.4,
+			CreatedAt:       now,
+			UpdatedAt:       now,
+		},
+		{
+			Ticker:          "BBNI",
+			Name:            "PT Bank Negara Indonesia Tbk",
+			Price:           3480,
+			Change:          20,
+			ChangePercent:   0.58,
+			Coverage:        28,
+			AnalystCoverage: 28,
+			MarketCap:       129000000000000,
+			PE:              7.6,
+			PBV:             0.98,
+			CreatedAt:       now,
+			UpdatedAt:       now,
+		},
+		{
+			Ticker:          "BRIS",
+			Name:            "PT Bank Syariah Indonesia Tbk",
+			Price:           1415,
+			Change:          0,
+			ChangePercent:   0.00,
+			Coverage:        18,
+			AnalystCoverage: 18,
+			MarketCap:       65000000000000,
+			PE:              12.5,
+			PBV:             1.85,
+			CreatedAt:       now,
+			UpdatedAt:       now,
+		},
+		{
+			Ticker:          "BBTN",
+			Name:            "PT Bank Tabungan Negara Tbk",
+			Price:           1065,
+			Change:          0,
+			ChangePercent:   0.00,
+			Coverage:        16,
+			AnalystCoverage: 16,
+			MarketCap:       15000000000000,
+			PE:              4.8,
+			PBV:             0.48,
+			CreatedAt:       now,
+			UpdatedAt:       now,
+		},
+		{
+			Ticker:          "BDMN",
+			Name:            "PT Bank Danamon Indonesia Tbk",
+			Price:           2250,
+			Change:          10,
+			ChangePercent:   0.45,
+			Coverage:        14,
+			AnalystCoverage: 14,
+			MarketCap:       22000000000000,
+			PE:              6.9,
+			PBV:             0.55,
+			CreatedAt:       now,
+			UpdatedAt:       now,
+		},
+		{
+			Ticker:          "BJBR",
+			Name:            "PT Bank Pembangunan Daerah Jawa Barat dan Banten Tbk",
+			Price:           980,
+			Change:          5,
+			ChangePercent:   0.51,
+			Coverage:        10,
+			AnalystCoverage: 10,
+			MarketCap:       10000000000000,
+			PE:              6.1,
+			PBV:             0.7,
+			CreatedAt:       now,
+			UpdatedAt:       now,
+		},
+		{
+			Ticker:          "BJTM",
+			Name:            "PT Bank Pembangunan Daerah Jawa Timur Tbk",
+			Price:           520,
+			Change:          -2,
+			ChangePercent:   -0.38,
+			Coverage:        8,
+			AnalystCoverage: 8,
+			MarketCap:       7800000000000,
+			PE:              5.8,
+			PBV:             0.65,
+			CreatedAt:       now,
+			UpdatedAt:       now,
+		},
+		{
+			Ticker:          "BNGA",
+			Name:            "PT Bank CIMB Niaga Tbk",
+			Price:           1480,
+			Change:          10,
+			ChangePercent:   0.68,
+			Coverage:        12,
+			AnalystCoverage: 12,
+			MarketCap:       37100000000000,
+			PE:              5.6,
+			PBV:             0.72,
+			CreatedAt:       now,
+			UpdatedAt:       now,
+		},
+	}
+	for i := range quotes {
+		quotes[i].PopulateComputedFields()
+	}
+	return quotes
+}
+
 

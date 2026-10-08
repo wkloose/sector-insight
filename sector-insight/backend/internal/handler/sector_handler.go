@@ -94,6 +94,19 @@ func HandleSectorDetailRouter(w http.ResponseWriter, r *http.Request) {
 		}
 		json.NewEncoder(w).Encode(news)
 
+	case "stocks":
+		subsector := r.URL.Query().Get("sub_sector")
+		stocks, err := sector.GetSectorStocks(slug, subsector)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"sector_slug": slug,
+			"total":       len(stocks),
+			"stocks":      stocks,
+		})
+
 	case "movers":
 		overview, err := sector.GetSectorOverview(slug)
 		if err != nil {
@@ -101,8 +114,9 @@ func HandleSectorDetailRouter(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		json.NewEncoder(w).Encode(map[string]interface{}{
-			"sector_slug": slug,
-			"top_movers":  overview.TopMovers,
+			"sector_slug":  slug,
+			"top_movers":   overview.TopMovers,
+			"top_laggards": overview.TopLaggards,
 		})
 
 	default:

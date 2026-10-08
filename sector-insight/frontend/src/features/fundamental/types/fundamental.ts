@@ -47,5 +47,21 @@ export interface ScreenerBankItem {
   roe: number
   dividend: number
   status: StatusType | "STABLE" | "WARNING" | "CRITICAL" | "Stabil" | "Waspada" | "Perhatian Khusus"
+  quarter?: string
 }
 
+export interface FundamentalScoreHistoryItem {
+  id?: number
+  ticker: string
+  quarter: string
+  score: number
+  status: "Stabil" | "Waspada" | "Perhatian Khusus"
+  nimScore: number
+  ldrScore: number
+  loanGrowthScore: number
+  depositGrowthScore: number
+  roeScore: number
+  profitConsistencyScore: number
+  dividendScore: number
+  createdAt?: string
+}

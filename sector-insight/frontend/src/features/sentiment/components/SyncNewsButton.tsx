@@ -36,9 +36,10 @@ export const SyncNewsButton: React.FC<SyncNewsButtonProps> = ({ className, onSyn
           setIsSuccess(null)
         }, 5000)
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       setIsSuccess(false)
-      setStatusMessage(e?.message || "Koneksi backend gagal.")
+      const errorMsg = e instanceof Error ? e.message : "Koneksi backend gagal."
+      setStatusMessage(errorMsg)
       setTimeout(() => {
         setStatusMessage(null)
         setIsSuccess(null)

@@ -18,4 +18,3 @@ export const SentimentSparkline: React.FC<SentimentSparklineProps> = ({
     </div>
   )
 }
-

@@ -119,4 +119,3 @@ export function formatRelativeTime(dateInput: string | Date | number): string {
   const diffInYears = Math.floor(diffInDays / 365)
   return `${diffInYears} tahun lalu`
 }
-

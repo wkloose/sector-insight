@@ -47,7 +47,7 @@ export const WatchedStockList: React.FC<WatchedStockListProps> = ({
             {stocks.length === 0 ? (
               <tr>
                 <td colSpan={7} className="px-space-md py-space-xl text-center text-text-secondary font-body-sm">
-                  Belum ada saham dalam watchlist. Gunakan pencarian di atas untuk menambahkan emiten perbankan.
+                  Belum ada saham dalam watchlist. Gunakan pencarian di atas untuk menambahkan emiten.
                 </td>
               </tr>
             ) : (
@@ -145,4 +145,3 @@ export const WatchedStockList: React.FC<WatchedStockListProps> = ({
     </div>
   )
 }
-

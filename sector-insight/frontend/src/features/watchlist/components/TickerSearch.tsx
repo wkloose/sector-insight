@@ -52,7 +52,7 @@ export const TickerSearch: React.FC<TickerSearchProps> = ({
             value={query}
             onChange={handleSearchChange}
             onClear={handleClear}
-            placeholder="Cari kode ticker atau nama bank..."
+            placeholder="Cari emiten IHSG (BBCA, TLKM, ASII, GOTO)..."
           />
         </div>
       </div>
@@ -67,7 +67,7 @@ export const TickerSearch: React.FC<TickerSearchProps> = ({
               Tidak Ditemukan Ticker yang Sesuai
             </span>
             <p className="font-body-sm text-[12px] text-text-secondary mt-0.5">
-              Coba gunakan kata kunci atau kode ticker lain (contoh: BBCA, BBRI, BMRI, BBNI, BRIS, BBTN).
+              Coba gunakan kata kunci atau kode ticker lain (contoh: BBCA, TLKM, ASII, GOTO, ADRO, ICBP).
             </p>
           </div>
         ) : (
@@ -140,4 +140,3 @@ export const TickerSearch: React.FC<TickerSearchProps> = ({
     </div>
   )
 }
-

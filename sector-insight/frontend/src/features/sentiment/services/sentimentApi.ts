@@ -33,6 +33,7 @@ export const MOCK_SENTIMENT_DATA: Record<string, SentimentData> = {
         reasoning: "Keputusan mempertahankan suku bunga tinggi menahan peredaran CASA murah dan meningkatkan beban bunga simpanan pada bank dengan portofolio kredit mikro sensitif seperti BBRI.",
         quote: "Gubernur BI menegaskan suku bunga acuan menetap tinggi demi stabilitas nilai tukar rupiah, mengindikasikan ruang penurunan suku bunga acuan masih terbatas hingga kuartal depan secara bertahap.",
         timeDecayLabel: "T-3 hari (0.78x Waktu)",
+        ticker: "BBRI",
       },
       {
         id: "art-2",
@@ -51,6 +52,7 @@ export const MOCK_SENTIMENT_DATA: Record<string, SentimentData> = {
         reasoning: "Pertumbuhan volume kredit segmen mikro melampaui target RBB didorong ekspansi pembiayaan inklusif, memperkuat kualitas aset fundamental.",
         quote: "Direktur Utama BRI menyampaikan keberhasilan transformasi digital ekosistem Kupedes dan integrasi Holding Ultra Mikro (Pegadaian & PNM) berhasil menekan rasio NPL gross mikro terkonsolidasi.",
         timeDecayLabel: "T-2 hari (0.91x Waktu)",
+        ticker: "BBRI",
       },
       {
         id: "art-3",
@@ -68,6 +70,7 @@ export const MOCK_SENTIMENT_DATA: Record<string, SentimentData> = {
         reasoning: "Aturan pengetatan perhitungan ATMR kredit komersial menuntut penambahan bantalan modal CAR perbankan.",
         quote: "Pemberlakuan buffer untuk risiko konsentrasi kredit membutuhkan tambahan modal perbankan berkisar 25-50 bps.",
         timeDecayLabel: "T-5 hari (0.68x Waktu)",
+        ticker: "BBRI",
       },
       {
         id: "art-4",
@@ -85,6 +88,7 @@ export const MOCK_SENTIMENT_DATA: Record<string, SentimentData> = {
         reasoning: "Peningkatan volume fee-based income dan perolehan dana murah (CASA) berbasis jaringan keagenan mikro.",
         quote: "Hingga akhir kuartal ketiga, volume transaksi AgenBRILink menembus Rp 1.050 triliun, menghasilkan rasio dana murah tabungan mikro yang konsisten stabil.",
         timeDecayLabel: "T-6 hari (0.58x Waktu)",
+        ticker: "BBRI",
       },
     ],
   },
@@ -118,6 +122,7 @@ export const MOCK_SENTIMENT_DATA: Record<string, SentimentData> = {
         reasoning: "Dominasi transaksi digital myBCA dan KlikBCA mempertahankan struktur biaya dana murah yang sangat efisien.",
         quote: "Pertumbuhan dana pihak ketiga BCA ditopang oleh loyalitas nasabah ritel dan korporasi pada sistem pembayaran transaksi harian.",
         timeDecayLabel: "T-1 hari (0.95x Waktu)",
+        ticker: "BBCA",
       },
     ],
   },
@@ -151,6 +156,7 @@ export const MOCK_SENTIMENT_DATA: Record<string, SentimentData> = {
         reasoning: "Portofolio korporasi dan sindikasi infrastruktur menjadi pendorong utama pendapatan bunga bersih.",
         quote: "Bank Mandiri mencatatkan ekspansi pembiayaan wholesale yang konsisten dengan rasio NPL gross terkendali di bawah 1,5%.",
         timeDecayLabel: "T-2 hari (0.88x Waktu)",
+        ticker: "BMRI",
       },
     ],
   },
@@ -184,6 +190,7 @@ export const MOCK_SENTIMENT_DATA: Record<string, SentimentData> = {
         reasoning: "Peluncuran platform digital baru mempercepat perolehan CASA ritel dan efisiensi biaya operasional CIR.",
         quote: "Manajemen BNI menyampaikan migrasi pengguna ke superapp Wondr menunjukkan tren akselerasi positif dengan retensi pengguna aktif yang tinggi.",
         timeDecayLabel: "T-3 hari (0.82x Waktu)",
+        ticker: "BBNI",
       },
     ],
   },
@@ -217,6 +224,7 @@ export const MOCK_SENTIMENT_DATA: Record<string, SentimentData> = {
         reasoning: "Diversifikasi produk pembiayaan mikro dan emas memberikan imbal hasil margin yang resilien terhadap siklus suku bunga makro.",
         quote: "BSI terus memperluas jangkauan layanan finansial syariah dengan pertumbuhan pembiayaan multiguna yang berkualitas.",
         timeDecayLabel: "T-4 hari (0.74x Waktu)",
+        ticker: "BRIS",
       },
     ],
   },
@@ -250,6 +258,7 @@ export const MOCK_SENTIMENT_DATA: Record<string, SentimentData> = {
         reasoning: "Tingginya suku bunga acuan meningkatkan beban biaya dana pihak ketiga bagi bank dengan rasio LDR di atas 90%.",
         quote: "Penyesuaian kuota fasilitas likuiditas pembiayaan perumahan (FLPP) menjadi penentu laju pembiayaan KPR subsidi ke depan.",
         timeDecayLabel: "T-5 hari (0.68x Waktu)",
+        ticker: "BBTN",
       },
     ],
   },
@@ -286,6 +295,7 @@ function createFallbackSentiment(ticker: string): SentimentData {
         reasoning: `Penyaluran kredit ${ticker} mencatat tren ekspansi yang sehat dengan pencadangan risiko yang memadai.`,
         quote: `Manajemen ${ticker} terus memperkuat efisiensi biaya dana dan digitalisasi layanan nasabah.`,
         timeDecayLabel: "T-2 hari (0.88x Waktu)",
+        ticker,
       },
       {
         id: `art-${ticker.toLowerCase()}-2`,
@@ -303,6 +313,7 @@ function createFallbackSentiment(ticker: string): SentimentData {
         reasoning: "Arah bauran kebijakan moneter terfokus pada stabilitas inflasi dan pergerakan nilai tukar.",
         quote: "Stabilitas sistem keuangan tetap berdaya tahan didukung permodalan perbankan yang kokoh.",
         timeDecayLabel: "T-3 hari (0.82x Waktu)",
+        ticker,
       },
     ],
   }
@@ -314,6 +325,7 @@ interface BackendRawArticle {
   snippet: string
   url: string
   tanggal_publikasi: string
+  ticker?: string
 }
 
 interface BackendProcessedArticle {
@@ -346,7 +358,7 @@ function getSentimentLabel(score: number): string {
   return "Negatif Signifikan"
 }
 
-function mapProcessedArticleToItem(art: BackendProcessedArticle, idx: number) {
+function mapProcessedArticleToItem(art: BackendProcessedArticle, idx: number, ticker?: string) {
   const title = art.raw_article?.judul || "Pembaruan Analisis Sentimen & Regulasi"
   const url = art.raw_article?.url || "https://bisnis.com"
   let source = "Media Finansial"
@@ -362,6 +374,20 @@ function mapProcessedArticleToItem(art: BackendProcessedArticle, idx: number) {
     ? d.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) + " WIB"
     : "24 Sep 2026, 09:00 WIB"
 
+  let affectedEntitiesClean = "Perbankan Nasional"
+  if (art.affected_entities) {
+    try {
+      const parsed = JSON.parse(art.affected_entities)
+      if (Array.isArray(parsed)) {
+        affectedEntitiesClean = parsed.join(", ")
+      } else {
+        affectedEntitiesClean = String(parsed)
+      }
+    } catch {
+      affectedEntitiesClean = art.affected_entities
+    }
+  }
+
   return {
     id: `art-live-${art.id || idx}`,
     title,
@@ -374,16 +400,17 @@ function mapProcessedArticleToItem(art: BackendProcessedArticle, idx: number) {
     sentimentLabel: getSentimentLabel(art.sentiment_score),
     confidence: Math.round((art.confidence || 0.9) * 100),
     decayWeight: 0.88,
-    affectedEntities: art.affected_entities || "Perbankan Nasional",
+    affectedEntities: affectedEntitiesClean,
     reasoning: art.reasoning || "Pengaruh regulasi dan dinamika operasional terhadap perbankan.",
     quote: art.raw_article?.snippet || art.reasoning,
     timeDecayLabel: "Terkini (Live Feed)",
+    ticker: art.raw_article?.ticker || ticker || "BBRI",
   }
 }
 
 export async function getSentimentData(ticker: string): Promise<SentimentData> {
   const upper = (ticker || "BBRI").toUpperCase()
-  const baseUrl = API_BASE_URL || "http://localhost:8080"
+  const baseUrl = process.env.BACKEND_INTERNAL_URL || API_BASE_URL || "http://localhost:8080"
   try {
     const [overviewRes, articlesRes] = await Promise.all([
       fetch(`${baseUrl}/api/v1/sentiment/${upper}`, { cache: "no-store" }),
@@ -396,9 +423,9 @@ export async function getSentimentData(ticker: string): Promise<SentimentData> {
     if (overview && typeof overview.company_sentiment_score === "number") {
       const mockFallback = MOCK_SENTIMENT_DATA[upper] || createFallbackSentiment(upper)
       const mappedArticles = Array.isArray(articlesList) && articlesList.length > 0
-        ? articlesList.map(mapProcessedArticleToItem)
+        ? articlesList.map((art, idx) => mapProcessedArticleToItem(art, idx, upper))
         : (overview.top_articles && overview.top_articles.length > 0)
-        ? overview.top_articles.map(mapProcessedArticleToItem)
+        ? overview.top_articles.map((art, idx) => mapProcessedArticleToItem(art, idx, upper))
         : mockFallback.articles
 
       const trend = (overview.trend_30_days && overview.trend_30_days.length > 0)
@@ -424,37 +451,36 @@ export async function getSentimentData(ticker: string): Promise<SentimentData> {
         articles: mappedArticles,
       }
     }
-  } catch (err) {
-    console.warn(`Backend sentiment for ${upper} offline, using fallback mock:`, err)
+  } catch {
   }
   return MOCK_SENTIMENT_DATA[upper] || createFallbackSentiment(upper)
 }
 
 export async function getArticlesFeed(ticker = "BBCA", category = "") {
-  const baseUrl = API_BASE_URL || "http://localhost:8080"
+  const upperTicker = ticker.toUpperCase()
+  const baseUrl = process.env.BACKEND_INTERNAL_URL || API_BASE_URL || "http://localhost:8080"
   try {
     const url = category
-      ? `${baseUrl}/api/v1/sentiment/${ticker}/articles?category=${encodeURIComponent(category)}`
-      : `${baseUrl}/api/v1/sentiment/${ticker}/articles`
+      ? `${baseUrl}/api/v1/sentiment/${upperTicker}/articles?category=${encodeURIComponent(category)}`
+      : `${baseUrl}/api/v1/sentiment/${upperTicker}/articles`
     const res = await fetch(url, { cache: "no-store" })
     if (res.ok) {
       const list: BackendProcessedArticle[] = await res.json()
       if (Array.isArray(list) && list.length > 0) {
-        return list.map(mapProcessedArticleToItem)
+        return list.map((art, idx) => mapProcessedArticleToItem(art, idx, upperTicker))
       }
     }
-  } catch (err) {
-    console.warn("Backend articles feed offline:", err)
+  } catch {
   }
-  const fallback = MOCK_SENTIMENT_DATA[ticker] || MOCK_SENTIMENT_DATA["BBRI"]
+  const fallback = MOCK_SENTIMENT_DATA[upperTicker] || MOCK_SENTIMENT_DATA["BBRI"]
   if (category) {
     return fallback.articles.filter((a) => a.category === category)
   }
   return fallback.articles
 }
 
-export async function syncLiveNews(): Promise<{ status: string; message: string; data?: any }> {
-  const baseUrl = API_BASE_URL || ""
+export async function syncLiveNews(): Promise<{ status: string; message: string; data?: unknown }> {
+  const baseUrl = process.env.BACKEND_INTERNAL_URL || API_BASE_URL || "http://localhost:8080"
   try {
     const res = await fetch(`${baseUrl}/api/v1/sync/news`, {
       method: "POST",
@@ -466,8 +492,8 @@ export async function syncLiveNews(): Promise<{ status: string; message: string;
     }
     const data = await res.json()
     return { status: "success", message: "Sinkronisasi berita live Sectors API & AI berhasil", data }
-  } catch (err: any) {
-    return { status: "error", message: err.message || "Gagal menghubungi backend untuk sync" }
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Gagal menghubungi backend untuk sync"
+    return { status: "error", message: msg }
   }
 }
-

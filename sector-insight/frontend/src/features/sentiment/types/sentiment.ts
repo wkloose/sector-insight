@@ -15,6 +15,7 @@ export interface SentimentArticle {
   reasoning: string
   quote: string
   timeDecayLabel: string
+  ticker?: string
 }
 
 export interface SentimentData {
@@ -32,4 +33,3 @@ export interface SentimentData {
   dominantRegulation?: string
   articles: SentimentArticle[]
 }
-

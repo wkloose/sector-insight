@@ -104,165 +104,140 @@ export const MOCK_ALERT_FEED: AlertFeedItem[] = [
   },
 ]
 
-const BANK_NAMES: Record<string, string> = {
-  BBRI: "PT Bank Rakyat Indonesia (Persero) Tbk",
-  BBCA: "PT Bank Central Asia Tbk",
-  BMRI: "PT Bank Mandiri (Persero) Tbk",
-  BBNI: "PT Bank Negara Indonesia Tbk",
-  BBTN: "PT Bank Tabungan Negara Tbk",
-  BRIS: "PT Bank Syariah Indonesia Tbk",
-  BDMN: "PT Bank Danamon Indonesia Tbk",
-}
-
-interface BackendCompositeResponse {
+export interface BackendCompositeAlert {
   ticker: string
-  overall_status: "Stabil" | "Waspada" | "Perhatian Khusus"
+  overall_status: string
   headline: string
   synthesis_summary: string
   fundamental_score: number
   company_sentiment: number
   policy_exposure: number
   foreign_anomaly: string
-  trigger_factors: string[]
+  crowd_sentiment: number
+  bullish_percent: number
+  divergence_status: string
+  trigger_factors?: string[]
 }
 
-function mapBackendToPrimaryAlert(item: BackendCompositeResponse): CompositeAlert {
-  const isSpecial = item.overall_status === "Perhatian Khusus"
-  const isWarning = item.overall_status === "Waspada"
-  const zScore = item.foreign_anomaly.includes("OUTFLOW")
-    ? -2.8
-    : item.foreign_anomaly.includes("INFLOW")
-    ? 2.4
-    : 0.35
-
-  let recommendedAction = "Pertahankan alokasi taktis portofolio, kinerja 3 pilar dalam batas terkendali."
-  if (isSpecial) {
-    recommendedAction = `Mitigasi risiko alokasi pada ${item.ticker} & pantau potensi tekanan lanjutan serta support teknikal.`
-  } else if (isWarning) {
-    recommendedAction = `Waspadai pergerakan likuiditas dan sentimen kebijakan moneter terkait ${item.ticker}.`
-  }
-
-  return {
-    id: `alert-${item.ticker.toLowerCase()}`,
-    ticker: item.ticker,
-    bankName: BANK_NAMES[item.ticker] || `Bank ${item.ticker}`,
-    timestamp: "Realtime Live",
-    timeAgo: "Baru saja",
-    headline: item.headline,
-    summary: item.synthesis_summary,
-    status: item.overall_status,
-    zScore,
-    fundamentalScore: Math.round(item.fundamental_score),
-    policyExposure: Number(item.policy_exposure.toFixed(2)),
-    confidence: 93.5,
-    recommendedAction,
-  }
+const BANK_NAMES: Record<string, string> = {
+  BBRI: "PT Bank Rakyat Indonesia Tbk",
+  BBCA: "PT Bank Central Asia Tbk",
+  BMRI: "PT Bank Mandiri (Persero) Tbk",
+  BBNI: "PT Bank Negara Indonesia Tbk",
+  BBTN: "PT Bank Tabungan Negara Tbk",
+  BDMN: "PT Bank Danamon Indonesia Tbk",
+  BRIS: "PT Bank Syariah Indonesia Tbk",
 }
 
-function mapBackendToFeedItem(item: BackendCompositeResponse, index: number): AlertFeedItem {
-  const zScore = item.foreign_anomaly.includes("OUTFLOW")
-    ? -2.5
-    : item.foreign_anomaly.includes("INFLOW")
-    ? 2.1
-    : 0.3
-
-  const triggerPillars: ("fundamental" | "sentiment" | "foreign_flow")[] = []
-  if (item.trigger_factors && item.trigger_factors.length > 0) {
-    item.trigger_factors.forEach((f) => {
-      const lower = f.toLowerCase()
-      if (lower.includes("fundamental") && !triggerPillars.includes("fundamental")) triggerPillars.push("fundamental")
-      if ((lower.includes("sentimen") || lower.includes("kebijakan")) && !triggerPillars.includes("sentiment")) triggerPillars.push("sentiment")
-      if ((lower.includes("foreign") || lower.includes("asing") || lower.includes("outflow") || lower.includes("inflow")) && !triggerPillars.includes("foreign_flow")) triggerPillars.push("foreign_flow")
-    })
-  }
-  if (triggerPillars.length === 0) {
-    triggerPillars.push("fundamental")
-  }
-
-  return {
-    id: `feed-${item.ticker}-${index}`,
-    ticker: item.ticker,
-    bankName: BANK_NAMES[item.ticker] || `Bank ${item.ticker}`,
-    timestamp: "24 Sep 2026",
-    timeAgo: index === 0 ? "4 menit lalu" : `${index * 2} jam lalu`,
-    title: item.headline,
-    description: item.synthesis_summary,
-    status: item.overall_status,
-    zScore,
-    fundamentalScore: Math.round(item.fundamental_score),
-    policyExposure: Number(item.policy_exposure.toFixed(2)),
-    triggerPillars,
-  }
+function resolveCompositeStatus(status: string): "Stabil" | "Waspada" | "Perhatian Khusus" {
+  if (status === "Perhatian Khusus") return "Perhatian Khusus"
+  if (status === "Waspada" || status === "Peluang Rebound") return "Waspada"
+  return "Stabil"
 }
 
 export async function getPrimaryAlert(): Promise<CompositeAlert> {
-  const baseUrl = API_BASE_URL || "http://localhost:8080"
+  const baseUrl = process.env.BACKEND_INTERNAL_URL || API_BASE_URL || "http://localhost:8080"
   try {
-    const res = await fetch(`${baseUrl}/api/v1/composite-alert/summary`, {
-      cache: "no-store",
-    })
-    if (!res.ok) throw new Error("Gagal mengambil ringkasan alert komposit")
-    const list: BackendCompositeResponse[] = await res.json()
-    if (Array.isArray(list) && list.length > 0) {
-
-      const special = list.find((a) => a.overall_status === "Perhatian Khusus")
-      const warning = list.find((a) => a.overall_status === "Waspada")
-      const target = special || warning || list[0]
-      return mapBackendToPrimaryAlert(target)
+    const res = await fetch(`${baseUrl}/api/v1/composite-alert/summary`, { cache: "no-store" })
+    if (res.ok) {
+      const list: BackendCompositeAlert[] = await res.json()
+      if (Array.isArray(list) && list.length > 0) {
+        const top = list.find((item) => item.overall_status === "Perhatian Khusus" || item.overall_status === "Peluang Rebound") || list[0]
+        const zScore = top.foreign_anomaly === "ANOMALI_OUTFLOW" ? -2.8 : top.foreign_anomaly === "ANOMALI_INFLOW" ? 2.45 : 0.0
+        return {
+          id: `alert-${top.ticker.toLowerCase()}-live`,
+          ticker: top.ticker,
+          bankName: BANK_NAMES[top.ticker] || `Bank ${top.ticker} Tbk`,
+          timestamp: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) + " WIB",
+          timeAgo: "Sesi Terkini",
+          headline: top.headline,
+          summary: top.synthesis_summary,
+          status: resolveCompositeStatus(top.overall_status),
+          zScore,
+          fundamentalScore: Math.round(top.fundamental_score),
+          policyExposure: top.policy_exposure,
+          confidence: 94.2,
+          recommendedAction: top.trigger_factors && top.trigger_factors.length > 0 ? top.trigger_factors.join(" • ") : "Pantau pergerakan harga dan arus volume transaksi",
+        }
+      }
     }
-  } catch (err) {
-    console.warn("Backend composite alert summary offline, using fallback mock:", err)
+  } catch {
   }
   return MOCK_PRIMARY_ALERT
 }
 
-export async function getAlertFeed(): Promise<AlertFeedItem[]> {
-  const baseUrl = API_BASE_URL || "http://localhost:8080"
+export async function getCompositeAlert(ticker: string): Promise<CompositeAlert> {
+  const upperTicker = ticker.toUpperCase()
+  const baseUrl = process.env.BACKEND_INTERNAL_URL || API_BASE_URL || "http://localhost:8080"
   try {
-    const res = await fetch(`${baseUrl}/api/v1/composite-alert/summary`, {
+    const res = await fetch(`${baseUrl}/api/v1/composite-alert/${upperTicker}`, {
       cache: "no-store",
     })
-    if (!res.ok) throw new Error("Gagal mengambil feed sinyal")
-    const list: BackendCompositeResponse[] = await res.json()
-    if (Array.isArray(list) && list.length > 0) {
-      return list.map((item, idx) => mapBackendToFeedItem(item, idx))
+    if (res.ok) {
+      const top: BackendCompositeAlert = await res.json()
+      if (top && top.ticker) {
+        const zScore = top.foreign_anomaly === "ANOMALI_OUTFLOW" ? -2.8 : top.foreign_anomaly === "ANOMALI_INFLOW" ? 2.45 : 0.0
+        return {
+          id: `alert-${top.ticker.toLowerCase()}-live`,
+          ticker: top.ticker,
+          bankName: BANK_NAMES[top.ticker] || `Bank ${top.ticker} Tbk`,
+          timestamp: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) + " WIB",
+          timeAgo: "Sesi Terkini",
+          headline: top.headline,
+          summary: top.synthesis_summary,
+          status: resolveCompositeStatus(top.overall_status),
+          zScore,
+          fundamentalScore: Math.round(top.fundamental_score),
+          policyExposure: top.policy_exposure,
+          confidence: 94.2,
+          recommendedAction: top.trigger_factors && top.trigger_factors.length > 0 ? top.trigger_factors.join(" • ") : "Pantau pergerakan harga dan arus volume transaksi",
+        }
+      }
     }
-  } catch (err) {
-    console.warn("Backend composite feed offline, using fallback mock:", err)
+  } catch {
+  }
+  if (upperTicker === "BBRI") {
+    return MOCK_PRIMARY_ALERT
+  }
+  return {
+    ...MOCK_PRIMARY_ALERT,
+    id: `alert-${upperTicker.toLowerCase()}-fallback`,
+    ticker: upperTicker,
+    bankName: BANK_NAMES[upperTicker] || `Bank ${upperTicker} Tbk`,
+  }
+}
+
+export async function getAlertFeed(): Promise<AlertFeedItem[]> {
+  const baseUrl = process.env.BACKEND_INTERNAL_URL || API_BASE_URL || "http://localhost:8080"
+  try {
+    const res = await fetch(`${baseUrl}/api/v1/composite-alert/summary`, { cache: "no-store" })
+    if (res.ok) {
+      const list: BackendCompositeAlert[] = await res.json()
+      if (Array.isArray(list) && list.length > 0) {
+        return list.map((item, idx) => {
+          const triggerPillars: ("fundamental" | "sentiment" | "foreign_flow")[] = []
+          if (item.fundamental_score > 0) triggerPillars.push("fundamental")
+          if (item.foreign_anomaly && item.foreign_anomaly !== "NORMAL") triggerPillars.push("foreign_flow")
+          if (item.company_sentiment !== 0 || item.policy_exposure !== 0 || item.crowd_sentiment !== 0 || (item.divergence_status && item.divergence_status !== "NORMAL")) triggerPillars.push("sentiment")
+          const zScore = item.foreign_anomaly === "ANOMALI_OUTFLOW" ? -2.8 : item.foreign_anomaly === "ANOMALI_INFLOW" ? 2.45 : 0.0
+          return {
+            id: `feed-live-${idx + 1}`,
+            ticker: item.ticker,
+            bankName: BANK_NAMES[item.ticker] || `Bank ${item.ticker} Tbk`,
+            timestamp: new Date().toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }) + ", 16:00 WIB",
+            timeAgo: "Sesi Hari Ini",
+            title: item.headline,
+            description: item.synthesis_summary,
+            status: resolveCompositeStatus(item.overall_status),
+            zScore,
+            fundamentalScore: Math.round(item.fundamental_score),
+            policyExposure: item.policy_exposure,
+            triggerPillars: triggerPillars.length > 0 ? triggerPillars : ["fundamental"],
+          }
+        })
+      }
+    }
+  } catch {
   }
   return MOCK_ALERT_FEED
 }
-
-export async function getCompositeAlertByTicker(ticker: string): Promise<CompositeAlert> {
-  const upper = (ticker || "BBRI").toUpperCase()
-  const baseUrl = API_BASE_URL || "http://localhost:8080"
-  try {
-    const res = await fetch(`${baseUrl}/api/v1/composite-alert/${upper}`, {
-      cache: "no-store",
-    })
-    if (!res.ok) throw new Error(`Gagal mengambil composite alert untuk ${upper}`)
-    const item: BackendCompositeResponse = await res.json()
-    return mapBackendToPrimaryAlert(item)
-  } catch {
-    return (
-      MOCK_ALERT_FEED.find((f) => f.ticker === upper)
-        ? {
-            id: `alert-${upper.toLowerCase()}`,
-            ticker: upper,
-            bankName: BANK_NAMES[upper] || `Bank ${upper}`,
-            timestamp: "Realtime",
-            timeAgo: "Baru saja",
-            headline: `${upper}: Analisis Sinyal Gabungan 3 Pilar Pasar`,
-            summary: `Skor fundamental dan pergerakan aliran broker asing menunjukkan tren konsolidasi di area batas aman.`,
-            status: "Stabil",
-            zScore: 0.35,
-            fundamentalScore: 78,
-            policyExposure: 0.25,
-            confidence: 91.0,
-            recommendedAction: "Pantau area akumulasi dan stabilitas NIM kuartalan.",
-          }
-        : MOCK_PRIMARY_ALERT
-    )
-  }
-}
-

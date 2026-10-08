@@ -130,28 +130,30 @@ export const MOCK_GLOSSARY: GlossaryItem[] = [
 
 export async function getBeginnerBrief(ticker: string): Promise<BeginnerBrief> {
   const upperTicker = ticker.toUpperCase()
+  const baseUrl = process.env.BACKEND_INTERNAL_URL || API_BASE_URL || "http://localhost:8080"
   try {
-    const res = await fetch(`${API_BASE_URL}/api/v1/stocks/${upperTicker}/beginner-brief`, {
+    const res = await fetch(`${baseUrl}/api/v1/stocks/${upperTicker}/beginner-brief`, {
       cache: "no-store",
     })
     if (res.ok) {
       const data = await res.json()
-      return {
-        ticker: data.ticker || upperTicker,
-        company_name: data.company_name || `PT ${upperTicker} Tbk`,
-        health_badge: data.health_badge || "Sehat",
-        health_color: data.health_color || "green",
-        health_score: data.health_score || 80,
-        tldr_summary: data.tldr_summary || "",
-        pros: Array.isArray(data.pros) ? data.pros : [],
-        cons: Array.isArray(data.cons) ? data.cons : [],
-        investor_fit: Array.isArray(data.investor_fit) ? data.investor_fit : [],
-        faq_items: Array.isArray(data.faq_items) ? data.faq_items : [],
-        last_updated: data.last_updated || new Date().toISOString(),
+      if (data && data.ticker) {
+        return {
+          ticker: data.ticker || upperTicker,
+          company_name: data.company_name || `PT ${upperTicker} Tbk`,
+          health_badge: data.health_badge || "Sehat",
+          health_color: data.health_color || "green",
+          health_score: data.health_score || 80,
+          tldr_summary: data.tldr_summary || "",
+          pros: Array.isArray(data.pros) ? data.pros : [],
+          cons: Array.isArray(data.cons) ? data.cons : [],
+          investor_fit: Array.isArray(data.investor_fit) ? data.investor_fit : [],
+          faq_items: Array.isArray(data.faq_items) ? data.faq_items : [],
+          last_updated: data.last_updated || new Date().toISOString(),
+        }
       }
     }
-  } catch (error) {
-    console.warn(`[getBeginnerBrief] API request failed for ${upperTicker}, falling back to grounded mock:`, error)
+  } catch {
   }
 
   if (MOCK_BEGINNER_BRIEFS[upperTicker]) {
@@ -194,8 +196,9 @@ export async function getBeginnerBrief(ticker: string): Promise<BeginnerBrief> {
 }
 
 export async function getGlossary(): Promise<GlossaryItem[]> {
+  const baseUrl = process.env.BACKEND_INTERNAL_URL || API_BASE_URL || "http://localhost:8080"
   try {
-    const res = await fetch(`${API_BASE_URL}/api/v1/glossary`, {
+    const res = await fetch(`${baseUrl}/api/v1/glossary`, {
       cache: "no-store",
     })
     if (res.ok) {
@@ -204,9 +207,7 @@ export async function getGlossary(): Promise<GlossaryItem[]> {
         return data.items
       }
     }
-  } catch (error) {
-    console.warn("[getGlossary] Failed to fetch glossary, fallback to mock:", error)
+  } catch {
   }
   return MOCK_GLOSSARY
 }
-

@@ -1,5 +1,9 @@
 import { API_BASE_URL } from "@/src/shared/lib/constants"
-import { ForeignFlowDetail } from "../types/foreignFlow"
+import {
+  ForeignFlowDetail,
+  MarketForeignFlowSummary,
+  StockForeignFlowItem,
+} from "../types/foreignFlow"
 
 export const MOCK_FOREIGN_FLOW_DATA: Record<string, ForeignFlowDetail> = {
   BBRI: {
@@ -380,7 +384,7 @@ export const MOCK_FOREIGN_FLOW_DATA: Record<string, ForeignFlowDetail> = {
 function createFallbackForeignFlow(ticker: string): ForeignFlowDetail {
   return {
     ticker,
-    bankName: `PT Bank ${ticker} Tbk`,
+    bankName: `${ticker} Tbk`,
     yesterdayFlow: 15000000000,
     yesterdayZScore: 0.45,
     yesterdayAnomalyStatus: "Normal Buy (+0.45σ)",
@@ -412,18 +416,21 @@ function createFallbackForeignFlow(ticker: string): ForeignFlowDetail {
   }
 }
 
-interface BackendDailyFlow {
+export interface BackendDailyFlow {
   id?: number
   ticker: string
   tanggal: string
   net_foreign_inflow: number
 }
 
-interface BackendAnomalyBrokerDetail {
+export interface BackendAnomalyBrokerDetail {
+  id?: number
+  anomaly_id?: number
   kode_broker: string
   nama_broker: string
   kategori: string
   net_value: number
+  created_at?: string
 }
 
 export interface BackendFlowAnomaly {
@@ -434,6 +441,7 @@ export interface BackendFlowAnomaly {
   z_score: number
   status_anomali: string
   broker_details?: BackendAnomalyBrokerDetail[]
+  created_at?: string
 }
 
 export async function getForeignFlowData(ticker: string): Promise<ForeignFlowDetail> {
@@ -456,24 +464,56 @@ export async function getForeignFlowData(ticker: string): Promise<ForeignFlowDet
       const variance = values.reduce((acc, v) => acc + Math.pow(v - mean, 2), 0) / values.length
       const stdDev = Math.sqrt(variance) || 1
 
-      const latestFlow = flows[0].net_foreign_inflow
-      const latestZScore = stdDev > 0 ? (latestFlow - mean) / stdDev : 0
-      const isAnomaly = Math.abs(latestZScore) >= 2.0
+      const anomalyDateMap = new Map<string, BackendFlowAnomaly>()
+      if (Array.isArray(anomalies)) {
+        for (const a of anomalies) {
+          const dStr = a.tanggal.split("T")[0]
+          anomalyDateMap.set(dStr, a)
+        }
+      }
+
+      const recentAnomaly = Array.isArray(anomalies) && anomalies.length > 0 ? anomalies[0] : null
+      let yesterdayFlow = flows.length > 1 ? flows[1].net_foreign_inflow : flows[0].net_foreign_inflow
+      let yesterdayZScore = stdDev > 0 ? (yesterdayFlow - mean) / stdDev : 0
+      let yesterdayAnomalyStatus = `Normal (${yesterdayZScore >= 0 ? "+" : ""}${yesterdayZScore.toFixed(2)}σ)`
+
+      if (recentAnomaly && Math.abs(recentAnomaly.z_score) >= 2.0) {
+        yesterdayFlow = recentAnomaly.net_foreign_inflow
+        yesterdayZScore = recentAnomaly.z_score
+        yesterdayAnomalyStatus = recentAnomaly.z_score < 0
+          ? `Outflow Ekstrem (${Math.abs(recentAnomaly.z_score).toFixed(1)}x σ normal)`
+          : `Inflow Ekstrem (${recentAnomaly.z_score.toFixed(1)}x σ normal)`
+      } else if (flows.length > 0) {
+        const latestZ = stdDev > 0 ? (flows[0].net_foreign_inflow - mean) / stdDev : 0
+        if (Math.abs(latestZ) >= 2.0) {
+          yesterdayFlow = flows[0].net_foreign_inflow
+          yesterdayZScore = latestZ
+          yesterdayAnomalyStatus = latestZ < 0
+            ? `Outflow Ekstrem (${Math.abs(latestZ).toFixed(1)}x σ normal)`
+            : `Inflow Ekstrem (${latestZ.toFixed(1)}x σ normal)`
+        }
+      }
 
       const flowPoints = flows.slice(0, 30).reverse().map((f) => {
         const d = new Date(f.tanggal)
         const displayDate = !isNaN(d.getTime())
           ? d.toLocaleDateString("id-ID", { day: "2-digit", month: "short" })
           : f.tanggal
+        const pDateStr = f.tanggal.split("T")[0]
+        const matchingAnomaly = anomalyDateMap.get(pDateStr)
         const z = stdDev > 0 ? (f.net_foreign_inflow - mean) / stdDev : 0
-        const isAnom = Math.abs(z) >= 2.0
+        const zScoreVal = matchingAnomaly ? matchingAnomaly.z_score : z
+        const isAnom = matchingAnomaly ? Math.abs(matchingAnomaly.z_score) >= 2.0 : Math.abs(z) >= 2.0
+        const brokerCode = matchingAnomaly?.broker_details?.[0]?.kode_broker
+
         return {
           date: f.tanggal,
           displayDate,
           netFlow: Number((f.net_foreign_inflow / 1000000000).toFixed(1)),
-          zScore: Number(z.toFixed(2)),
+          zScore: Number(zScoreVal.toFixed(2)),
           isAnomaly: isAnom,
-          anomalyType: isAnom ? (z < 0 ? ("outflow" as const) : ("inflow" as const)) : undefined,
+          anomalyType: isAnom ? (zScoreVal < 0 ? ("outflow" as const) : ("inflow" as const)) : undefined,
+          dominantBroker: brokerCode,
         }
       })
 
@@ -504,7 +544,31 @@ export async function getForeignFlowData(ticker: string): Promise<ForeignFlowDet
               isExtreme: Math.abs(a.z_score) >= 2.5,
             }
           })
-        : mockFallback.anomalies14d
+        : []
+
+      let synthesisSentence = mockFallback.synthesisSentence
+      if (recentAnomaly && Math.abs(recentAnomaly.z_score) >= 2.0) {
+        const b = recentAnomaly.broker_details?.[0]
+        const bText = b ? ` (${b.kode_broker}: net-${b.net_value < 0 ? "sell" : "buy"} masif Rp ${(Math.abs(b.net_value) / 1e9).toFixed(1)} miliar)` : ""
+        const dObj = new Date(recentAnomaly.tanggal)
+        const dStr = !isNaN(dObj.getTime())
+          ? dObj.toLocaleDateString("id-ID", { day: "numeric", month: "long" })
+          : recentAnomaly.tanggal
+        synthesisSentence = `Deviasi ${recentAnomaly.z_score >= 0 ? "+" : ""}${recentAnomaly.z_score.toFixed(2)}σ pada ${dStr} mengonfirmasikan aksi ${recentAnomaly.z_score < 0 ? "ambil untung agresif" : "akumulasi agresif"} institusi asing${bText}. Indikator foreign flow 90 hari terpantau aktif.`
+      }
+
+      let composition14d = mockFallback.composition14d
+      if (recentAnomaly && recentAnomaly.broker_details && recentAnomaly.broker_details.length > 0) {
+        const brokerStrs = recentAnomaly.broker_details.map(
+          (b) => `${b.kode_broker} (${b.nama_broker.split(" ")[0]})`
+        )
+        if (brokerStrs.length > 0) {
+          composition14d = {
+            ...composition14d,
+            top3Brokers: brokerStrs,
+          }
+        }
+      }
 
       const totalT = Math.abs(sum) >= 1e12
         ? `${sum >= 0 ? "+" : "-"}Rp ${(Math.abs(sum) / 1e12).toFixed(2)} T`
@@ -513,27 +577,24 @@ export async function getForeignFlowData(ticker: string): Promise<ForeignFlowDet
       return {
         ticker: upper,
         bankName: mockFallback.bankName,
-        yesterdayFlow: latestFlow,
-        yesterdayZScore: Number(latestZScore.toFixed(2)),
-        yesterdayAnomalyStatus: isAnomaly
-          ? latestZScore < 0 ? `Outflow Ekstrem (${Math.abs(latestZScore).toFixed(1)}x σ normal)` : `Inflow Ekstrem (${latestZScore.toFixed(1)}x σ normal)`
-          : `Normal (${latestZScore >= 0 ? "+" : ""}${latestZScore.toFixed(2)}σ)`,
+        yesterdayFlow,
+        yesterdayZScore: Number(yesterdayZScore.toFixed(2)),
+        yesterdayAnomalyStatus,
         baselineMean90d: mean,
         standardDeviation: stdDev,
         totalNetFlow90d: sum,
         totalNetFlowFormatted: totalT,
         anomalyCount90d: anomalies.length || mockFallback.anomalyCount90d,
-        inflowAnomalyCount: anomalies.filter((a) => a.z_score > 0).length || mockFallback.inflowAnomalyCount,
-        outflowAnomalyCount: anomalies.filter((a) => a.z_score < 0).length || mockFallback.outflowAnomalyCount,
-        synthesisSentence: mockFallback.synthesisSentence,
+        inflowAnomalyCount: anomalies.filter((a) => a.z_score > 0).length,
+        outflowAnomalyCount: anomalies.filter((a) => a.z_score < 0).length,
+        synthesisSentence,
         synthesisConfidence: mockFallback.synthesisConfidence,
-        composition14d: mockFallback.composition14d,
-        anomalies14d,
+        composition14d,
+        anomalies14d: anomalies14d.length > 0 ? anomalies14d : mockFallback.anomalies14d,
         flowPoints,
       }
     }
-  } catch (err) {
-    console.warn(`Backend foreign flow for ${upper} offline, using fallback mock:`, err)
+  } catch {
   }
   return MOCK_FOREIGN_FLOW_DATA[upper] || createFallbackForeignFlow(upper)
 }
@@ -547,8 +608,7 @@ export async function getForeignFlowSummary(): Promise<BackendFlowAnomaly[]> {
     if (!res.ok) throw new Error("Gagal mengambil ringkasan anomali asing")
     const list: BackendFlowAnomaly[] = await res.json()
     return list
-  } catch (err) {
-    console.warn("Backend foreign flow summary offline:", err)
+  } catch {
     return [
       {
         id: 1,
@@ -577,3 +637,148 @@ export async function getForeignFlowSummary(): Promise<BackendFlowAnomaly[]> {
   }
 }
 
+export async function getForeignFlowAnomalies(ticker: string): Promise<BackendFlowAnomaly[]> {
+  const upper = (ticker || "BBRI").toUpperCase()
+  const baseUrl = API_BASE_URL || "http://localhost:8080"
+  try {
+    const res = await fetch(`${baseUrl}/api/v1/foreign-flow/${upper}/anomalies`, {
+      cache: "no-store",
+    })
+    if (!res.ok) throw new Error("Gagal mengambil anomali broker asing")
+    const list: BackendFlowAnomaly[] = await res.json()
+    return list
+  } catch {
+    const summary = await getForeignFlowSummary()
+    return summary.filter((a) => a.ticker.toUpperCase() === upper)
+  }
+}
+
+export const MOCK_MARKET_FOREIGN_FLOW: MarketForeignFlowSummary = {
+  total_net_flow_today: 571000000000,
+  total_foreign_buy: 4850000000000,
+  total_foreign_sell: 4279000000000,
+  foreign_participation_percent: 36.5,
+  net_flow_7d: 2150000000000,
+  net_flow_30d: 5480000000000,
+  net_flow_90d: 14200000000000,
+  sector_breakdown: [
+    { sector_slug: "energy", sector_name: "Energi (Energy)", net_flow: 480500000000, status: "Akumulasi Masif" },
+    { sector_slug: "financials", sector_name: "Keuangan (Financials)", net_flow: 320000000000, status: "Akumulasi Masif" },
+    { sector_slug: "basic-materials", sector_name: "Barang Baku (Basic Materials)", net_flow: 110500000000, status: "Akumulasi Moderat" },
+    { sector_slug: "infrastructures", sector_name: "Infrastruktur (Infrastructures)", net_flow: 85000000000, status: "Akumulasi Moderat" },
+    { sector_slug: "consumer-non-cyclicals", sector_name: "Konsumen Primer (Consumer Non-Cyclicals)", net_flow: 24000000000, status: "Akumulasi Ringan" },
+    { sector_slug: "healthcare", sector_name: "Kesehatan (Healthcare)", net_flow: -12000000000, status: "Distribusi Ringan" },
+    { sector_slug: "industrials", sector_name: "Perindustrian (Industrials)", net_flow: -40000000000, status: "Distribusi Moderat" },
+    { sector_slug: "consumer-cyclicals", sector_name: "Konsumen Non-Primer (Consumer Cyclicals)", net_flow: -65000000000, status: "Distribusi Moderat" },
+    { sector_slug: "transportation-logistic", sector_name: "Transportasi (Transportation & Logistics)", net_flow: -80000000000, status: "Distribusi Moderat" },
+    { sector_slug: "technology", sector_name: "Teknologi (Technology)", net_flow: -110000000000, status: "Distribusi Masif" },
+    { sector_slug: "properties-real-estate", sector_name: "Properti (Properties & Real Estate)", net_flow: -142000000000, status: "Distribusi Masif" },
+  ],
+  history_30d: Array.from({ length: 30 }, (_, i) => {
+    const d = new Date(Date.now() - (29 - i) * 86400000).toISOString().split("T")[0]
+    const baseFlows = [
+      120, -85, 210, 340, -150, 420, 290, -40, 180, 520,
+      -220, 310, 450, -80, 190, 260, -310, 400, 510, -120,
+      140, 390, -260, 480, 620, -180, 240, 310, -95, 571
+    ]
+    const netM = (baseFlows[i] || 150) * 1000000000
+    return {
+      date: d,
+      net_flow: netM,
+      cumulative_flow: (i * 350 + 1000) * 1000000000,
+    }
+  }),
+  top_accumulated: [
+    { ticker: "BBCA", name: "Bank Central Asia Tbk.", sector: "Keuangan", price: 6050, change_percent: 1.5, net_flow: 220000000000, dominant_broker: "AK" },
+    { ticker: "BMRI", name: "Bank Mandiri (Persero) Tbk.", sector: "Keuangan", price: 5400, change_percent: 1.2, net_flow: 145000000000, dominant_broker: "YU" },
+    { ticker: "ADRO", name: "Alamtri Resources Indonesia Tbk.", sector: "Energi", price: 2600, change_percent: 3.8, net_flow: 95000000000, dominant_broker: "ZP" },
+    { ticker: "TLKM", name: "Telkom Indonesia (Persero) Tbk.", sector: "Infrastruktur", price: 2320, change_percent: 1.4, net_flow: 68000000000, dominant_broker: "KZ" },
+    { ticker: "BRIS", name: "Bank Syariah Indonesia Tbk.", sector: "Keuangan", price: 1415, change_percent: 2.1, net_flow: 42000000000, dominant_broker: "RX" },
+  ],
+  top_distributed: [
+    { ticker: "BBRI", name: "Bank Rakyat Indonesia (Persero) Tbk.", sector: "Keuangan", price: 3820, change_percent: -0.8, net_flow: -145000000000, dominant_broker: "CS" },
+    { ticker: "GOTO", name: "GoTo Gojek Tokopedia Tbk.", sector: "Teknologi", price: 72, change_percent: -2.4, net_flow: -92000000000, dominant_broker: "BK" },
+    { ticker: "ASII", name: "Astra International Tbk.", sector: "Perindustrian", price: 5125, change_percent: -1.2, net_flow: -64000000000, dominant_broker: "CC" },
+    { ticker: "BBTN", name: "Bank Tabungan Negara (Persero) Tbk.", sector: "Keuangan", price: 1120, change_percent: -1.8, net_flow: -48000000000, dominant_broker: "CG" },
+    { ticker: "KLBF", name: "Kalbe Farma Tbk.", sector: "Kesehatan", price: 1480, change_percent: -0.7, net_flow: -32000000000, dominant_broker: "DX" },
+  ],
+}
+
+export const MOCK_STOCKS_FOREIGN_FLOW: StockForeignFlowItem[] = [
+  { ticker: "BBCA", name: "Bank Central Asia Tbk.", sector: "Keuangan", price: 6050, change_percent: 1.5, net_foreign_flow: 220000000000, foreign_buy: 680000000000, foreign_sell: 460000000000, z_score: 2.68, anomaly_status: "ANOMALI_INFLOW", accumulation_status: "Akumulasi Masif", dominant_broker: "AK" },
+  { ticker: "BMRI", name: "Bank Mandiri (Persero) Tbk.", sector: "Keuangan", price: 5400, change_percent: 1.2, net_foreign_flow: 145000000000, foreign_buy: 420000000000, foreign_sell: 275000000000, z_score: 1.82, anomaly_status: "NORMAL", accumulation_status: "Akumulasi Masif", dominant_broker: "YU" },
+  { ticker: "ADRO", name: "Alamtri Resources Indonesia Tbk.", sector: "Energi", price: 2600, change_percent: 3.8, net_foreign_flow: 95000000000, foreign_buy: 240000000000, foreign_sell: 145000000000, z_score: 2.15, anomaly_status: "ANOMALI_INFLOW", accumulation_status: "Akumulasi Masif", dominant_broker: "ZP" },
+  { ticker: "TLKM", name: "Telkom Indonesia (Persero) Tbk.", sector: "Infrastruktur", price: 2320, change_percent: 1.4, net_foreign_flow: 68000000000, foreign_buy: 210000000000, foreign_sell: 142000000000, z_score: 1.45, anomaly_status: "NORMAL", accumulation_status: "Akumulasi Moderat", dominant_broker: "KZ" },
+  { ticker: "BRIS", name: "Bank Syariah Indonesia Tbk.", sector: "Keuangan", price: 1415, change_percent: 2.1, net_foreign_flow: 42000000000, foreign_buy: 95000000000, foreign_sell: 53000000000, z_score: 1.34, anomaly_status: "NORMAL", accumulation_status: "Akumulasi Moderat", dominant_broker: "RX" },
+  { ticker: "PTBA", name: "Bukit Asam Tbk.", sector: "Energi", price: 3380, change_percent: 2.9, net_foreign_flow: 38000000000, foreign_buy: 84000000000, foreign_sell: 46000000000, z_score: 1.22, anomaly_status: "NORMAL", accumulation_status: "Akumulasi Moderat", dominant_broker: "AK" },
+  { ticker: "ANTM", name: "Aneka Tambang Tbk.", sector: "Barang Baku", price: 1530, change_percent: 2.1, net_foreign_flow: 32000000000, foreign_buy: 110000000000, foreign_sell: 78000000000, z_score: 1.15, anomaly_status: "NORMAL", accumulation_status: "Akumulasi Moderat", dominant_broker: "YU" },
+  { ticker: "ICBP", name: "Indofood CBP Sukses Makmur Tbk.", sector: "Konsumen Primer", price: 11800, change_percent: 0.8, net_foreign_flow: 24000000000, foreign_buy: 72000000000, foreign_sell: 48000000000, z_score: 0.95, anomaly_status: "NORMAL", accumulation_status: "Akumulasi Ringan", dominant_broker: "CC" },
+  { ticker: "MEDC", name: "Medco Energi Internasional Tbk.", sector: "Energi", price: 1460, change_percent: 2.4, net_foreign_flow: 21000000000, foreign_buy: 55000000000, foreign_sell: 34000000000, z_score: 0.85, anomaly_status: "NORMAL", accumulation_status: "Akumulasi Ringan", dominant_broker: "ZP" },
+  { ticker: "BBNI", name: "Bank Negara Indonesia (Persero) Tbk.", sector: "Keuangan", price: 4400, change_percent: 0.5, net_foreign_flow: 18000000000, foreign_buy: 130000000000, foreign_sell: 112000000000, z_score: 0.45, anomaly_status: "NORMAL", accumulation_status: "Netral", dominant_broker: "BK" },
+  { ticker: "MDKA", name: "Merdeka Copper Gold Tbk.", sector: "Barang Baku", price: 2340, change_percent: 1.8, net_foreign_flow: 15000000000, foreign_buy: 86000000000, foreign_sell: 71000000000, z_score: 0.52, anomaly_status: "NORMAL", accumulation_status: "Netral", dominant_broker: "AK" },
+  { ticker: "ISAT", name: "Indosat Tbk.", sector: "Infrastruktur", price: 2280, change_percent: 0.9, net_foreign_flow: 12000000000, foreign_buy: 48000000000, foreign_sell: 36000000000, z_score: 0.41, anomaly_status: "NORMAL", accumulation_status: "Netral", dominant_broker: "KZ" },
+  { ticker: "KLBF", name: "Kalbe Farma Tbk.", sector: "Kesehatan", price: 1480, change_percent: -0.7, net_foreign_flow: -32000000000, foreign_buy: 38000000000, foreign_sell: 70000000000, z_score: -1.25, anomaly_status: "NORMAL", accumulation_status: "Distribusi Ringan", dominant_broker: "DX" },
+  { ticker: "BBTN", name: "Bank Tabungan Negara (Persero) Tbk.", sector: "Keuangan", price: 1120, change_percent: -1.8, net_foreign_flow: -48000000000, foreign_buy: 28000000000, foreign_sell: 76000000000, z_score: -2.25, anomaly_status: "ANOMALI_OUTFLOW", accumulation_status: "Distribusi Masif", dominant_broker: "CG" },
+  { ticker: "ASII", name: "Astra International Tbk.", sector: "Perindustrian", price: 5125, change_percent: -1.2, net_foreign_flow: -64000000000, foreign_buy: 82000000000, foreign_sell: 146000000000, z_score: -1.68, anomaly_status: "NORMAL", accumulation_status: "Distribusi Moderat", dominant_broker: "CC" },
+  { ticker: "GOTO", name: "GoTo Gojek Tokopedia Tbk.", sector: "Teknologi", price: 72, change_percent: -2.4, net_foreign_flow: -92000000000, foreign_buy: 154000000000, foreign_sell: 246000000000, z_score: -1.95, anomaly_status: "NORMAL", accumulation_status: "Distribusi Masif", dominant_broker: "BK" },
+  { ticker: "BBRI", name: "Bank Rakyat Indonesia (Persero) Tbk.", sector: "Keuangan", price: 3820, change_percent: -0.8, net_foreign_flow: -145000000000, foreign_buy: 310000000000, foreign_sell: 455000000000, z_score: -2.82, anomaly_status: "ANOMALI_OUTFLOW", accumulation_status: "Distribusi Masif", dominant_broker: "CS" },
+]
+
+export async function getMarketForeignFlowSummary(): Promise<MarketForeignFlowSummary> {
+  const baseUrl = API_BASE_URL || "http://localhost:8080"
+  try {
+    const res = await fetch(`${baseUrl}/api/v1/foreign-flow/market`, {
+      cache: "no-store",
+    })
+    if (res.ok) {
+      const data = await res.json()
+      if (data && data.total_net_flow_today !== undefined) {
+        return data
+      }
+    }
+  } catch {
+  }
+  return MOCK_MARKET_FOREIGN_FLOW
+}
+
+export async function getAllStockForeignFlows(
+  search?: string,
+  sector?: string,
+  filter?: string,
+  limit: number = 50
+): Promise<StockForeignFlowItem[]> {
+  const baseUrl = API_BASE_URL || "http://localhost:8080"
+  try {
+    const url = new URL(`${baseUrl}/api/v1/foreign-flow/stocks`)
+    if (search) url.searchParams.set("q", search)
+    if (sector && sector !== "ALL") url.searchParams.set("sector", sector)
+    if (filter && filter !== "ALL") url.searchParams.set("filter", filter)
+    url.searchParams.set("limit", limit.toString())
+
+    const res = await fetch(url.toString(), { cache: "no-store" })
+    if (res.ok) {
+      const data = await res.json()
+      if (Array.isArray(data) && data.length > 0) {
+        return data
+      }
+    }
+  } catch {
+  }
+
+  let list = [...MOCK_STOCKS_FOREIGN_FLOW]
+  if (sector && sector !== "ALL") {
+    list = list.filter((s) => s.sector.toLowerCase().includes(sector.toLowerCase()))
+  }
+  if (search) {
+    const q = search.toLowerCase()
+    list = list.filter((s) => s.ticker.toLowerCase().includes(q) || s.name.toLowerCase().includes(q))
+  }
+  if (filter === "inflow") {
+    list = list.filter((s) => s.net_foreign_flow > 0)
+  } else if (filter === "outflow") {
+    list = list.filter((s) => s.net_foreign_flow < 0)
+  } else if (filter === "anomaly") {
+    list = list.filter((s) => Math.abs(s.z_score) >= 2.0)
+  }
+  return list
+}

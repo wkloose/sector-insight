@@ -22,10 +22,10 @@ export const MAIN_NAV_ITEMS: readonly NavItem[] = [
     pathKey: "screener-fundamental",
   },
   {
-    title: "Detail Saham",
-    href: ROUTES.STOCK_DETAIL("BBCA"),
-    icon: "query_stats",
-    pathKey: "detail-saham",
+    title: "Komparasi Saham",
+    href: ROUTES.COMPARE,
+    icon: "compare_arrows",
+    pathKey: "komparasi-saham",
   },
   {
     title: "Aktivitas Asing",
@@ -34,22 +34,10 @@ export const MAIN_NAV_ITEMS: readonly NavItem[] = [
     pathKey: "aktivitas-asing",
   },
   {
-    title: "Transparansi Berita",
-    href: ROUTES.ARTICLES_HUB,
-    icon: "feed",
-    pathKey: "transparansi-berita",
-  },
-  {
     title: "Feed Sinyal Gabungan",
     href: ROUTES.SIGNALS,
     icon: "rss_feed",
     pathKey: "feed-sinyal-gabungan",
-  },
-  {
-    title: "Perbandingan Sektor",
-    href: ROUTES.COMPARE,
-    icon: "compare_arrows",
-    pathKey: "perbandingan-sektor",
   },
   {
     title: "Sektor Hub & Rotasi",
@@ -58,16 +46,16 @@ export const MAIN_NAV_ITEMS: readonly NavItem[] = [
     pathKey: "sektor-hub",
   },
   {
-    title: "Kelola Watchlist",
-    href: ROUTES.WATCHLIST,
-    icon: "bookmark",
-    pathKey: "kelola-watchlist",
-  },
-  {
     title: "Komunitas Intel",
     href: ROUTES.COMMUNITY,
     icon: "groups",
     pathKey: "komunitas-intel",
+  },
+  {
+    title: "Kelola Watchlist",
+    href: ROUTES.WATCHLIST,
+    icon: "bookmark",
+    pathKey: "kelola-watchlist",
   },
   {
     title: "Metodologi Skor",
@@ -76,4 +64,3 @@ export const MAIN_NAV_ITEMS: readonly NavItem[] = [
     pathKey: "metodologi-skor",
   },
 ]
-

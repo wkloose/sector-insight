@@ -3,8 +3,10 @@ import { Metadata } from "next"
 import {
   getCommunityPosts,
   getCommunityAlerts,
+  getCrowdSentiment,
   CommunityFeed,
   DivergenceAlertBanner,
+  CrowdBarometerCard,
 } from "@/src/features/community"
 
 export const metadata: Metadata = {
@@ -21,9 +23,10 @@ export default async function CommunityPage({ searchParams }: CommunityPageProps
   const { ticker } = await searchParams
   const selectedTicker = ticker ? ticker.toUpperCase() : ""
 
-  const [alerts, posts] = await Promise.all([
+  const [alerts, posts, crowdSentiment] = await Promise.all([
     getCommunityAlerts(),
     getCommunityPosts(selectedTicker || undefined),
+    getCrowdSentiment(selectedTicker || "BBRI"),
   ])
 
   const filteredAlerts = selectedTicker
@@ -32,7 +35,6 @@ export default async function CommunityPage({ searchParams }: CommunityPageProps
 
   return (
     <div className="flex flex-col gap-space-lg w-full pb-space-xl">
-
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-space-md pb-space-lg border-b border-border-subtle/60">
         <div>
           <div className="flex items-center gap-2">
@@ -59,7 +61,7 @@ export default async function CommunityPage({ searchParams }: CommunityPageProps
       {filteredAlerts.length > 0 && (
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <span className="font-caption text-caption font-bold text-brand-red uppercase tracking-wider flex items-center gap-1.5">
+            <span className="font-caption text-caption text-text-secondary font-bold text-brand-red uppercase tracking-wider flex items-center gap-1.5">
               <span className="material-symbols-outlined text-[16px]">warning</span>
               <span>Peringatan Divergensi Aktif Terdeteksi ({filteredAlerts.length})</span>
             </span>
@@ -103,6 +105,8 @@ export default async function CommunityPage({ searchParams }: CommunityPageProps
         ))}
       </div>
 
+      <CrowdBarometerCard sentiment={crowdSentiment} />
+
       <div className="bg-surface-card rounded-xl border border-border-subtle p-space-lg shadow-sm">
         <div className="flex items-center justify-between pb-space-sm border-b border-border-subtle mb-space-md">
           <div className="flex items-center gap-2">
@@ -121,4 +125,3 @@ export default async function CommunityPage({ searchParams }: CommunityPageProps
     </div>
   )
 }
-

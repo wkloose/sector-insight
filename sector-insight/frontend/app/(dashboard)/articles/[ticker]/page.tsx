@@ -144,4 +144,3 @@ export default async function ArticlesPage({ params }: Props) {
     </div>
   )
 }
-

@@ -1,5 +1,6 @@
 import React from "react"
 import Link from "next/link"
+import { AnomalyBadge } from "@/src/entities/stock/components/AnomalyBadge"
 
 export interface FlowSummaryCardProps {
   ticker: string
@@ -20,25 +21,35 @@ export const FlowSummaryCard: React.FC<FlowSummaryCardProps> = ({
   isAnomaly,
   className,
 }) => {
+  const isOutflow = zScore < 0
   return (
     <div
       className={
         className ||
-        "bg-surface-card border border-border-subtle p-space-md rounded flex items-center justify-between hover:bg-surface-container-low transition-colors"
+        "bg-surface-card border border-border-subtle p-space-md rounded flex items-center justify-between hover:bg-surface-container-low hover:border-border-subtle/80 transition-all select-none"
       }
     >
       <div className="flex items-center gap-space-md">
         <span
           className={`font-label-ticker text-[16px] font-bold ${
-            isAnomaly ? "text-brand-red" : "text-text-primary"
+            isAnomaly ? (isOutflow ? "text-data-bearish" : "text-data-bullish") : "text-text-primary"
           }`}
         >
           {ticker}
         </span>
-        <div className="flex flex-col">
-          <span className="font-body-sm text-[13px] text-text-primary font-medium">
-            {yesterdayFlowFormatted} {isAnomaly ? `(Z: ${zScore}σ)` : "Normal"}
-          </span>
+        <div className="flex flex-col gap-0.5">
+          <div className="flex items-center gap-2">
+            <span className="font-mono tracking-tight font-semibold text-[13px] text-text-primary">
+              {yesterdayFlowFormatted}
+            </span>
+            {isAnomaly && (
+              <AnomalyBadge
+                type={isOutflow ? "outflow" : "inflow"}
+                label={`Z: ${zScore > 0 ? "+" : ""}${zScore}σ`}
+                size="sm"
+              />
+            )}
+          </div>
           {isAnomaly && (
             <span className="font-caption text-[11px] text-text-secondary">
               Broker dominan: <strong>{dominantBrokerCode}</strong> ({dominantBrokerName})
@@ -49,12 +60,13 @@ export const FlowSummaryCard: React.FC<FlowSummaryCardProps> = ({
 
       <Link
         href={`/foreign-activity/${ticker}`}
-        className="font-caption text-caption text-brand-red hover:underline font-semibold flex items-center gap-0.5"
+        className="group font-caption text-caption text-brand-red hover:underline font-semibold flex items-center gap-0.5 min-h-[36px]"
       >
         <span>Lihat Grafik</span>
-        <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+        <span className="material-symbols-outlined text-[14px] group-hover:translate-x-0.5 transition-transform duration-150">
+          arrow_forward
+        </span>
       </Link>
     </div>
   )
 }
-

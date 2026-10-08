@@ -11,6 +11,7 @@ import (
 	"sector-insight/backend/internal/database"
 	"sector-insight/backend/internal/handler"
 	"sector-insight/backend/internal/jobs"
+	"sector-insight/backend/internal/service/fundamental"
 )
 
 func main() {
@@ -21,6 +22,10 @@ func main() {
 	_, err := database.InitDB(cfg)
 	if err != nil {
 		log.Printf("[WARNING] Database initialization failed: %v. Continuing in offline/mock mode...", err)
+	} else {
+		if err := fundamental.RecalculateAndPersistAllScores(database.DB); err != nil {
+			log.Printf("[WARNING] Failed to recalculate fundamental scores: %v", err)
+		}
 	}
 
 	sectorsClient := sectors.NewClient(cfg.SectorsBaseURL, cfg.SectorsAPIKey)

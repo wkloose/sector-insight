@@ -4,7 +4,7 @@ import {
   WatchlistManager,
   getWatchedStocks,
   searchStocks,
-  MOCK_INGESTION_WORKERS,
+  getIngestionWorkers,
 } from "@/src/features/watchlist"
 
 export const metadata: Metadata = {
@@ -13,16 +13,17 @@ export const metadata: Metadata = {
 }
 
 export default async function WatchlistPage() {
-  const [initialStocks, initialSearchStocks] = await Promise.all([
+  const [initialStocks, initialSearchStocks, workers] = await Promise.all([
     getWatchedStocks(),
     searchStocks(""),
+    getIngestionWorkers(),
   ])
 
   return (
     <WatchlistManager
       initialStocks={initialStocks}
       initialSearchStocks={initialSearchStocks}
-      workers={MOCK_INGESTION_WORKERS}
+      workers={workers}
     />
   )
 }

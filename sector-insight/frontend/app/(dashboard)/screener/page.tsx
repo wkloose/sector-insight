@@ -47,9 +47,8 @@ export default async function ScreenerPage() {
 
       <div className="p-space-md bg-surface-card rounded border border-border-subtle text-caption text-text-secondary flex items-center justify-between">
         <span>* Kolom dapat diurutkan dengan mengklik header tabel. Data diperbarui setiap rilis laporan keuangan kuartalan.</span>
-        <span className="font-mono text-[11px] text-text-primary">Terakhir Sinkron: Q2 2026</span>
+        <span className="font-mono text-[11px] text-text-primary">Terakhir Sinkron: {data[0]?.quarter || "Q2 2026"}</span>
       </div>
     </div>
   )
 }
-

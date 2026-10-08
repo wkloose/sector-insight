@@ -67,4 +67,3 @@ export const CompositeAlertHero: React.FC<CompositeAlertHeroProps> = ({
     </div>
   )
 }
-

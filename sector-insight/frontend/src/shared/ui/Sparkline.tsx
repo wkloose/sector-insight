@@ -67,4 +67,3 @@ export const Sparkline: React.FC<SparklineProps> = ({
     </svg>
   )
 }
-

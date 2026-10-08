@@ -1,23 +1,52 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useSyncExternalStore } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { cn } from "@/src/shared/lib/cn"
 import { SearchInput } from "@/src/shared/ui/SearchInput"
 import { CommandPalette } from "@/src/shared/ui/CommandPalette"
-import { SyncNewsButton } from "@/src/features/sentiment"
+import {
+  getMarketSummary,
+  getWibTimeAndStatus,
+  DEFAULT_MARKET_SUMMARY,
+  MarketSummary,
+} from "@/src/features/market"
 
 export interface HeaderProps {
-
   className?: string
 }
 
 export const Header: React.FC<HeaderProps> = ({ className }) => {
   const [searchValue, setSearchValue] = useState("")
   const [isPaletteOpen, setIsPaletteOpen] = useState(false)
+  const [marketSummary, setMarketSummary] = useState<MarketSummary>(DEFAULT_MARKET_SUMMARY)
+  const [wibTime, setWibTime] = useState<string>("--:--:-- WIB")
+  const [currentStatus, setCurrentStatus] = useState<string>("Pasar Tutup")
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  )
 
   useEffect(() => {
+    const updateTimeAndStatus = () => {
+      const { formattedTime, status } = getWibTimeAndStatus()
+      setWibTime(formattedTime)
+      setCurrentStatus(status)
+    }
+
+    updateTimeAndStatus()
+    const timer = setInterval(updateTimeAndStatus, 1000)
+
+    const fetchSummary = () => {
+      getMarketSummary().then((data) => {
+        if (data) setMarketSummary(data)
+      })
+    }
+    fetchSummary()
+    const summaryInterval = setInterval(fetchSummary, 5000)
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault()
@@ -26,14 +55,60 @@ export const Header: React.FC<HeaderProps> = ({ className }) => {
     }
 
     window.addEventListener("keydown", handleKeyDown)
-    return () => window.removeEventListener("keydown", handleKeyDown)
+    return () => {
+      clearInterval(timer)
+      clearInterval(summaryInterval)
+      window.removeEventListener("keydown", handleKeyDown)
+    }
   }, [])
+
+  const formattedIhsg =
+    typeof marketSummary.ihsg_index === "number"
+      ? marketSummary.ihsg_index.toLocaleString("id-ID", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })
+      : String(marketSummary.ihsg_index || "6.148,92")
+
+  const ihsgChangeRaw = (() => {
+    const pct = marketSummary.ihsg_change_percent
+    if (typeof pct === "number") {
+      const sign = pct >= 0 ? "+" : ""
+      return `${sign}${pct.toFixed(2).replace(".", ",")}%`
+    }
+    const s = String(pct || "+0,49%")
+    if (s.includes(",")) return s.endsWith("%") ? s : s + "%"
+    return s.replace(".", ",").endsWith("%") ? s.replace(".", ",") : s.replace(".", ",") + "%"
+  })()
+
+  const isIhsgPositive = !ihsgChangeRaw.startsWith("-")
+
+  const foreignFlowFormatted =
+    marketSummary.total_foreign_flow_formatted ||
+    (typeof marketSummary.total_foreign_flow === "number"
+      ? `${marketSummary.total_foreign_flow >= 0 ? "+" : "-"}Rp ${(Math.abs(marketSummary.total_foreign_flow) / 1e9).toFixed(0)} M`
+      : "+Rp 31 M")
+  const isFlowPositive = !foreignFlowFormatted.startsWith("-")
+
+  const sectorIndicator =
+    marketSummary.top_sector ||
+    marketSummary.sector_leader ||
+    marketSummary.active_sector ||
+    "Perbankan Big 4"
+
+  const marketStatus = mounted
+    ? (marketSummary.market_status && !["Pasar Tutup", "Sesi I Buka", "Istirahat Pasar", "Sesi II Buka", "Pra-Penutupan"].includes(marketSummary.market_status)
+        ? marketSummary.market_status
+        : currentStatus)
+    : (marketSummary.market_status || "Pasar Tutup")
+
+  const isMarketOpen = marketStatus.includes("Buka")
 
   return (
     <>
       <header
         className={cn(
-          "fixed top-0 left-0 right-0 h-16 z-40 bg-surface-container-lowest border-b border-border-subtle flex items-center justify-between px-margin",
+          "fixed top-0 left-0 right-0 h-16 z-40 backdrop-blur-md bg-surface-container-lowest/80 border-b border-border-subtle flex items-center justify-between px-margin transition-colors duration-200",
           className
         )}
       >
@@ -60,20 +135,24 @@ export const Header: React.FC<HeaderProps> = ({ className }) => {
           <div className="h-4 w-[1px] bg-border-subtle hidden lg:block" />
 
           <div className="hidden xl:flex items-center gap-space-md">
-            <div className="flex items-center gap-space-xs px-space-sm py-space-xs bg-surface-card border border-border-subtle rounded">
+            <div className="flex items-center gap-space-xs px-space-sm py-space-xs bg-surface-card/80 border border-border-subtle rounded transition-colors hover:bg-surface-card">
               <span className="font-caption text-caption text-text-secondary uppercase">IHSG</span>
-              <span className="font-mono text-tabular-sm text-text-primary font-medium">7.321,98</span>
-              <span className="font-mono text-tabular-sm text-data-bullish">+0,42%</span>
+              <span className="font-mono tracking-tight font-semibold text-tabular-sm text-text-primary">{formattedIhsg}</span>
+              <span className={`font-mono tracking-tight font-semibold text-tabular-sm ${isIhsgPositive ? "text-data-bullish" : "text-data-bearish"}`}>
+                {ihsgChangeRaw}
+              </span>
             </div>
-            <div className="flex items-center gap-space-xs px-space-sm py-space-xs bg-surface-card border border-border-subtle rounded">
+            <div className="flex items-center gap-space-xs px-space-sm py-space-xs bg-surface-card/80 border border-border-subtle rounded transition-colors hover:bg-surface-card">
               <span className="font-caption text-caption text-text-secondary uppercase">Asing Bersih</span>
-              <span className="font-mono text-tabular-sm text-data-bullish">+Rp 210M</span>
+              <span className={`font-mono tracking-tight font-semibold text-tabular-sm ${isFlowPositive ? "text-data-bullish" : "text-data-bearish"}`}>
+                {foreignFlowFormatted}
+              </span>
             </div>
           </div>
 
-          <div className="hidden md:flex items-center gap-space-xs px-space-sm py-space-xs bg-surface-card border border-border-subtle rounded cursor-pointer hover:bg-surface-container-high transition-colors">
+          <div className="hidden md:flex items-center gap-space-xs px-space-sm py-space-xs bg-surface-card/80 border border-border-subtle rounded cursor-pointer hover:bg-surface-container-high transition-colors">
             <span className="font-caption text-caption text-text-secondary">Sektor:</span>
-            <span className="font-body-sm text-body-sm text-text-primary font-medium">Perbankan Big 4</span>
+            <span className="font-body-sm text-body-sm text-text-primary font-medium">{sectorIndicator}</span>
             <span className="material-symbols-outlined text-[14px] text-text-secondary">arrow_drop_down</span>
           </div>
         </div>
@@ -101,14 +180,14 @@ export const Header: React.FC<HeaderProps> = ({ className }) => {
             <span className="material-symbols-outlined text-[20px]">search</span>
           </button>
 
-          <div className="hidden lg:flex items-center gap-space-xs px-space-sm py-space-xs border border-border-subtle rounded bg-surface-card select-none">
-            <span className="w-1.5 h-1.5 rounded-full bg-data-neutral animate-pulse" />
-            <span className="font-mono text-tabular-sm text-text-secondary">17:00:00 WIB</span>
+          <div className="hidden lg:flex items-center gap-space-xs px-space-sm py-space-xs border border-border-subtle rounded bg-surface-card/80 select-none hover:bg-surface-card transition-colors">
+            <span className={`w-1.5 h-1.5 rounded-full ${isMarketOpen ? "bg-data-bullish animate-pulse" : "bg-data-neutral animate-pulse"}`} />
+            <span className="font-mono tracking-tight font-semibold text-tabular-sm text-text-secondary">
+              {mounted ? wibTime : (marketSummary.market_time || "--:--:-- WIB")}
+            </span>
             <span className="text-border-subtle">•</span>
-            <span className="font-caption text-caption text-text-secondary">Pasar Tutup</span>
+            <span className="font-caption text-caption text-text-secondary">{marketStatus}</span>
           </div>
-
-          <SyncNewsButton className="hidden md:inline-flex text-caption py-1 px-2.5" />
 
           <button
             type="button"
@@ -128,7 +207,7 @@ export const Header: React.FC<HeaderProps> = ({ className }) => {
               <span className="font-caption text-caption font-medium text-text-primary leading-none">
                 Institutional Desk
               </span>
-              <span className="font-mono text-[10px] text-text-secondary mt-0.5 leading-none">
+              <span className="font-mono tracking-tight text-[10px] text-text-secondary mt-0.5 leading-none">
                 ID-7729X
               </span>
             </div>
@@ -143,4 +222,3 @@ export const Header: React.FC<HeaderProps> = ({ className }) => {
     </>
   )
 }
-

@@ -1,5 +1,12 @@
 from fastapi import APIRouter, HTTPException
-from app.models.schemas import ArticleInput, ArticleAnalysis, BatchAnalysisRequest, BatchAnalysisResponse
+from app.models.schemas import (
+    ArticleInput,
+    ArticleAnalysis,
+    BatchAnalysisRequest,
+    BatchAnalysisResponse,
+    CompareStocksRequest,
+    CompareStocksResponse,
+)
 from app.services.analyzer import analyzer_service
 
 router = APIRouter()
@@ -26,4 +33,12 @@ async def analyze_batch_articles(batch: BatchAnalysisRequest):
         return BatchAnalysisResponse(results=results)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/compare-stocks", response_model=CompareStocksResponse)
+async def compare_stocks_endpoint(req: CompareStocksRequest):
+    try:
+        return await analyzer_service.analyze_comparison(req.stocks)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 

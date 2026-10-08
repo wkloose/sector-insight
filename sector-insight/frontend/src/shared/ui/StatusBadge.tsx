@@ -37,7 +37,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
       dot: "bg-data-neutral",
     },
     [StatusType.CRITICAL]: {
-      label: STATUS_LABELS.CRITICAL,
+      label: size === "sm" ? "Perhatian" : STATUS_LABELS.CRITICAL,
       container: "bg-data-bearish/15 text-data-bearish border-data-bearish/30",
       dot: "bg-data-bearish",
     },
@@ -55,7 +55,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
   return (
     <span
       className={cn(
-        "inline-flex items-center font-semibold rounded border select-none tracking-wide",
+        "inline-flex items-center font-semibold rounded border select-none tracking-wide whitespace-nowrap shrink-0",
         config.container,
         sizeClasses[size],
         className
@@ -67,4 +67,3 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
     </span>
   )
 }
-

@@ -3,6 +3,7 @@ package database
 import (
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"sector-insight/backend/internal/config"
@@ -11,6 +12,7 @@ import (
 	"github.com/glebarez/sqlite"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"gorm.io/gorm/logger"
 )
 
@@ -27,15 +29,19 @@ func InitDB(cfg *config.Config) (*gorm.DB, error) {
 	})
 
 	if err != nil {
-		log.Printf("[DATABASE] PostgreSQL connection failed (%v). Falling back to local SQLite (sector_insight.db)...", err)
+		sqlitePath := "sector_insight.db"
+		if p := os.Getenv("SQLITE_PATH"); p != "" {
+			sqlitePath = p
+		}
+		log.Printf("[DATABASE] PostgreSQL connection failed (%v). Falling back to local SQLite (%s)...", err, sqlitePath)
 
-		db, err = gorm.Open(sqlite.Open("sector_insight.db"), &gorm.Config{
+		db, err = gorm.Open(sqlite.Open(sqlitePath), &gorm.Config{
 			Logger: logger.Default.LogMode(logger.Warn),
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to open sqlite fallback: %w", err)
 		}
-		log.Println("[DATABASE] Successfully connected to local SQLite database.")
+		log.Printf("[DATABASE] Successfully connected to local SQLite database (%s).\n", sqlitePath)
 	} else {
 		log.Println("[DATABASE] Successfully connected to PostgreSQL database.")
 	}
@@ -56,6 +62,7 @@ func InitDB(cfg *config.Config) (*gorm.DB, error) {
 		&model.DailyCrowdSentiment{},
 		&model.SectorMaster{},
 		&model.SectorDailyScore{},
+		&model.StockQuote{},
 	)
 	if err != nil {
 		return nil, fmt.Errorf("auto-migration failed: %w", err)
@@ -63,6 +70,7 @@ func InitDB(cfg *config.Config) (*gorm.DB, error) {
 
 	DB = db
 	seedInitialDataIfEmpty(db)
+	ensureAllBankingData(db)
 	return db, nil
 }
 
@@ -319,6 +327,327 @@ func seedInitialDataIfEmpty(db *gorm.DB) {
 			{SectorSlug: "properties-real-estate", Tanggal: time.Now(), SMRSScore: 28.2, SentimentScore: -0.45, NetForeignFlow: -142000000000, PriceReturn7D: -8.1, Status: "LAGGING", TopMovers: `["BSDE (-2.1%)","CTRA (-1.8%)","PWON (-1.5%)"]`, CreatedAt: time.Now()},
 		}
 		db.Create(&scores)
+	}
+
+	var quoteCount int64
+	db.Model(&model.StockQuote{}).Count(&quoteCount)
+	if quoteCount < 10 {
+		log.Println("[DATABASE] Seeding or ensuring stock quotes for 10 tracked banks...")
+		for _, q := range model.GetDefaultStockQuotes() {
+			var existing model.StockQuote
+			if err := db.Where("ticker = ?", q.Ticker).First(&existing).Error; err != nil {
+				db.Create(&q)
+			}
+		}
+	}
+
+	ensureAllBankingData(db)
+}
+
+func ensureAllBankingData(db *gorm.DB) {
+	if db == nil {
+		return
+	}
+	log.Println("[DATABASE] Ensuring complete banking data for all 10 tracked stocks...")
+
+	fundamentalScores := []model.FundamentalScore{
+		{
+			Ticker:             "BBCA",
+			Kuartal:            "2025-Q4",
+			NIMScore:           78.0,
+			LDRScore:           86.0,
+			LoanGrowthScore:    82.0,
+			DepositGrowthScore: 85.0,
+			ROEScore:           94.0,
+			KonsistensiScore:   92.0,
+			DividendScore:      88.0,
+			SkorAkhir:          89.0,
+			HealthStatus:       "Sangat Sehat",
+			CreatedAt:          time.Now(),
+		},
+		{
+			Ticker:             "BBRI",
+			Kuartal:            "2025-Q4",
+			NIMScore:           93.0,
+			LDRScore:           84.0,
+			LoanGrowthScore:    78.0,
+			DepositGrowthScore: 80.0,
+			ROEScore:           88.0,
+			KonsistensiScore:   85.0,
+			DividendScore:      90.0,
+			SkorAkhir:          85.0,
+			HealthStatus:       "Perhatian Khusus",
+			CreatedAt:          time.Now(),
+		},
+		{
+			Ticker:             "BMRI",
+			Kuartal:            "2025-Q4",
+			NIMScore:           72.0,
+			LDRScore:           88.0,
+			LoanGrowthScore:    84.0,
+			DepositGrowthScore: 82.0,
+			ROEScore:           86.0,
+			KonsistensiScore:   88.0,
+			DividendScore:      82.0,
+			SkorAkhir:          85.0,
+			HealthStatus:       "Sangat Sehat",
+			CreatedAt:          time.Now(),
+		},
+		{
+			Ticker:             "BBNI",
+			Kuartal:            "2025-Q4",
+			NIMScore:           68.0,
+			LDRScore:           82.0,
+			LoanGrowthScore:    75.0,
+			DepositGrowthScore: 78.0,
+			ROEScore:           79.0,
+			KonsistensiScore:   80.0,
+			DividendScore:      75.0,
+			SkorAkhir:          79.0,
+			HealthStatus:       "Sehat",
+			CreatedAt:          time.Now(),
+		},
+		{
+			Ticker:             "BRIS",
+			Kuartal:            "2025-Q4",
+			NIMScore:           80.0,
+			LDRScore:           85.0,
+			LoanGrowthScore:    82.0,
+			DepositGrowthScore: 84.0,
+			ROEScore:           84.0,
+			KonsistensiScore:   88.0,
+			DividendScore:      78.0,
+			SkorAkhir:          82.0,
+			HealthStatus:       "Sangat Sehat",
+			CreatedAt:          time.Now(),
+		},
+		{
+			Ticker:             "BNGA",
+			Kuartal:            "2025-Q4",
+			NIMScore:           65.0,
+			LDRScore:           83.0,
+			LoanGrowthScore:    76.0,
+			DepositGrowthScore: 77.0,
+			ROEScore:           78.0,
+			KonsistensiScore:   80.0,
+			DividendScore:      78.0,
+			SkorAkhir:          77.0,
+			HealthStatus:       "Stabil",
+			CreatedAt:          time.Now(),
+		},
+		{
+			Ticker:             "BDMN",
+			Kuartal:            "2025-Q4",
+			NIMScore:           84.0,
+			LDRScore:           76.0,
+			LoanGrowthScore:    68.0,
+			DepositGrowthScore: 70.0,
+			ROEScore:           72.0,
+			KonsistensiScore:   70.0,
+			DividendScore:      68.0,
+			SkorAkhir:          70.0,
+			HealthStatus:       "Sehat",
+			CreatedAt:          time.Now(),
+		},
+		{
+			Ticker:             "BBTN",
+			Kuartal:            "2025-Q4",
+			NIMScore:           42.0,
+			LDRScore:           62.0,
+			LoanGrowthScore:    58.0,
+			DepositGrowthScore: 55.0,
+			ROEScore:           56.0,
+			KonsistensiScore:   50.0,
+			DividendScore:      52.0,
+			SkorAkhir:          54.0,
+			HealthStatus:       "Perhatian Khusus",
+			CreatedAt:          time.Now(),
+		},
+		{
+			Ticker:             "BJBR",
+			Kuartal:            "2025-Q4",
+			NIMScore:           58.0,
+			LDRScore:           75.0,
+			LoanGrowthScore:    62.0,
+			DepositGrowthScore: 65.0,
+			ROEScore:           68.0,
+			KonsistensiScore:   65.0,
+			DividendScore:      72.0,
+			SkorAkhir:          65.0,
+			HealthStatus:       "Stabil",
+			CreatedAt:          time.Now(),
+		},
+		{
+			Ticker:             "BJTM",
+			Kuartal:            "2025-Q4",
+			NIMScore:           66.0,
+			LDRScore:           74.0,
+			LoanGrowthScore:    60.0,
+			DepositGrowthScore: 64.0,
+			ROEScore:           66.0,
+			KonsistensiScore:   65.0,
+			DividendScore:      70.0,
+			SkorAkhir:          64.0,
+			HealthStatus:       "Stabil",
+			CreatedAt:          time.Now(),
+		},
+	}
+
+	for _, fs := range fundamentalScores {
+		var existing model.FundamentalScore
+		err := db.Where("ticker = ? AND kuartal = ?", fs.Ticker, fs.Kuartal).First(&existing).Error
+		if err != nil {
+			db.Create(&fs)
+		} else {
+			db.Model(&existing).Updates(map[string]interface{}{
+				"skor_akhir":    fs.SkorAkhir,
+				"nim_score":     fs.NIMScore,
+				"health_status": fs.HealthStatus,
+				"ldr_score":     fs.LDRScore,
+				"roe_score":     fs.ROEScore,
+			})
+		}
+	}
+
+	foreignFlows := map[string][]float64{
+		"BBCA": {38.5e9, 42.0e9, 29.0e9, 51.2e9, 33.4e9, 45.0e9, 28.5e9, 39.0e9, 48.0e9, 22.0e9, 36.5e9, 41.0e9, 30.5e9, 44.0e9},
+		"BMRI": {28.0e9, 34.5e9, 21.0e9, 39.0e9, 25.5e9, 31.0e9, 19.5e9, 33.0e9, 37.0e9, 18.0e9, 27.5e9, 32.0e9, 24.0e9, 35.0e9},
+		"BRIS": {6.5e9, 8.2e9, 5.1e9, 9.4e9, 7.0e9, 8.8e9, 4.5e9, 7.8e9, 9.1e9, 5.6e9, 7.2e9, 8.5e9, 6.0e9, 9.0e9},
+		"BNGA": {4.2e9, 5.5e9, 3.1e9, 6.0e9, 4.8e9, 5.2e9, 2.9e9, 5.8e9, 6.4e9, 3.5e9, 4.9e9, 5.7e9, 4.0e9, 6.2e9},
+		"BBRI": {-28.0e9, -35.5e9, -19.0e9, -42.0e9, -24.5e9, -31.0e9, -18.5e9, -36.0e9, -44.0e9, -22.0e9, -29.5e9, -38.0e9, -25.0e9, -39.0e9},
+		"BBTN": {-7.5e9, -9.2e9, -5.0e9, -11.4e9, -6.8e9, -8.5e9, -4.2e9, -9.8e9, -12.1e9, -5.5e9, -7.0e9, -10.2e9, -6.1e9, -11.0e9},
+		"BBNI": {12.5e9, -8.2e9, 15.0e9, -5.4e9, 9.8e9, -11.2e9, 14.0e9, -7.5e9, 11.2e9, -4.8e9, 8.5e9, -9.0e9, 13.1e9, -6.2e9},
+		"BDMN": {3.8e9, -2.5e9, 4.2e9, -1.8e9, 2.9e9, -3.4e9, 4.5e9, -2.1e9, 3.2e9, -1.5e9, 2.7e9, -3.1e9, 3.9e9, -2.0e9},
+		"BJBR": {1.2e9, -0.8e9, 1.5e9, -0.6e9, 0.9e9, -1.1e9, 1.4e9, -0.7e9, 1.1e9, -0.5e9, 0.8e9, -1.0e9, 1.3e9, -0.6e9},
+		"BJTM": {0.9e9, -0.6e9, 1.1e9, -0.5e9, 0.8e9, -0.9e9, 1.2e9, -0.4e9, 0.7e9, -0.6e9, 1.0e9, -0.7e9, 0.8e9, -0.5e9},
+	}
+
+	nowTruncated := time.Now().Truncate(24 * time.Hour)
+	trackedTickers := []string{"BBCA", "BBRI", "BMRI", "BBNI", "BRIS", "BNGA", "BDMN", "BBTN", "BJBR", "BJTM"}
+	for _, ticker := range trackedTickers {
+		var flowCount int64
+		db.Model(&model.DailyForeignFlow{}).Where("ticker = ?", ticker).Count(&flowCount)
+		if flowCount < 10 {
+			vals, ok := foreignFlows[ticker]
+			if !ok {
+				continue
+			}
+			for i, val := range vals {
+				t := nowTruncated.AddDate(0, 0, -i)
+				flow := model.DailyForeignFlow{
+					Ticker:           ticker,
+					Tanggal:          t,
+					NetForeignInflow: val,
+					CreatedAt:        t,
+				}
+				db.Clauses(clause.OnConflict{
+					Columns:   []clause.Column{{Name: "ticker"}, {Name: "tanggal"}},
+					DoUpdates: clause.AssignmentColumns([]string{"net_foreign_inflow"}),
+				}).Create(&flow)
+			}
+		}
+	}
+
+	defaultSentiments := []model.DailySentimentScore{
+		{
+			Ticker:                "BBCA",
+			CompanySentimentScore: 0.58,
+			PolicyExposureScore:   -0.15,
+			JumlahArtikelCompany:  14,
+			JumlahArtikelPolicy:   6,
+		},
+		{
+			Ticker:                "BBRI",
+			CompanySentimentScore: -0.36,
+			PolicyExposureScore:   -0.35,
+			JumlahArtikelCompany:  12,
+			JumlahArtikelPolicy:   8,
+		},
+		{
+			Ticker:                "BMRI",
+			CompanySentimentScore: 0.45,
+			PolicyExposureScore:   -0.10,
+			JumlahArtikelCompany:  11,
+			JumlahArtikelPolicy:   5,
+		},
+		{
+			Ticker:                "BBNI",
+			CompanySentimentScore: 0.22,
+			PolicyExposureScore:   -0.05,
+			JumlahArtikelCompany:  9,
+			JumlahArtikelPolicy:   5,
+		},
+		{
+			Ticker:                "BRIS",
+			CompanySentimentScore: 0.35,
+			PolicyExposureScore:   0.10,
+			JumlahArtikelCompany:  8,
+			JumlahArtikelPolicy:   4,
+		},
+		{
+			Ticker:                "BNGA",
+			CompanySentimentScore: 0.18,
+			PolicyExposureScore:   -0.05,
+			JumlahArtikelCompany:  7,
+			JumlahArtikelPolicy:   4,
+		},
+		{
+			Ticker:                "BDMN",
+			CompanySentimentScore: 0.05,
+			PolicyExposureScore:   -0.10,
+			JumlahArtikelCompany:  6,
+			JumlahArtikelPolicy:   4,
+		},
+		{
+			Ticker:                "BBTN",
+			CompanySentimentScore: -0.28,
+			PolicyExposureScore:   -0.40,
+			JumlahArtikelCompany:  8,
+			JumlahArtikelPolicy:   6,
+		},
+		{
+			Ticker:                "BJBR",
+			CompanySentimentScore: 0.12,
+			PolicyExposureScore:   -0.05,
+			JumlahArtikelCompany:  5,
+			JumlahArtikelPolicy:   3,
+		},
+		{
+			Ticker:                "BJTM",
+			CompanySentimentScore: 0.10,
+			PolicyExposureScore:   -0.05,
+			JumlahArtikelCompany:  5,
+			JumlahArtikelPolicy:   3,
+		},
+	}
+
+	for _, sent := range defaultSentiments {
+		var count int64
+		db.Model(&model.DailySentimentScore{}).Where("ticker = ?", sent.Ticker).Count(&count)
+		if count == 0 {
+			sent.Tanggal = time.Now()
+			sent.CreatedAt = time.Now()
+			db.Create(&sent)
+		}
+	}
+
+	for _, q := range model.GetDefaultStockQuotes() {
+		var existing model.StockQuote
+		if err := db.Where("ticker = ?", q.Ticker).First(&existing).Error; err != nil {
+			db.Create(&q)
+		} else {
+			if existing.Coverage != q.Coverage || existing.Price == 0 {
+				db.Model(&existing).Updates(map[string]interface{}{
+					"coverage":       q.Coverage,
+					"name":           q.Name,
+					"price":          q.Price,
+					"change_percent": q.ChangePercent,
+					"market_cap":     q.MarketCap,
+					"pe":             q.PE,
+					"pbv":            q.PBV,
+				})
+			}
+		}
 	}
 }
 

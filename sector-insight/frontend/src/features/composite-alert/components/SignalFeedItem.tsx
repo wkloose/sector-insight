@@ -59,4 +59,3 @@ export const SignalFeedItem: React.FC<SignalFeedItemProps> = ({ item }) => {
     </div>
   )
 }
-

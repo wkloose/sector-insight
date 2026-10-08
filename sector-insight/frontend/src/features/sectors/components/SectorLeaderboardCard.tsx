@@ -60,12 +60,39 @@ export function SectorLeaderboardCard({ sectors }: SectorLeaderboardCardProps) {
 
                 <div className="flex flex-wrap items-center gap-2 mt-1 font-caption text-caption text-text-secondary">
                   <span>Subsektor: {sector.subsectors.slice(0, 3).join(", ")}</span>
-                  {sector.top_movers.length > 0 && (
+                  {sector.total_companies && (
+                    <>
+                      <span>•</span>
+                      <span className="font-mono text-text-primary font-semibold">
+                        {sector.total_companies} Emiten
+                      </span>
+                    </>
+                  )}
+                  {sector.avg_fundamental_score && (
                     <>
                       <span>•</span>
                       <span>
-                        Top Movers:{" "}
-                        <strong className="text-text-primary">{sector.top_movers.join(", ")}</strong>
+                        Fund: <strong className="text-emerald-400 font-mono">{sector.avg_fundamental_score}/100</strong>
+                      </span>
+                    </>
+                  )}
+                  {sector.top_movers.length > 0 && (
+                    <>
+                      <span>•</span>
+                      <span className="flex items-center gap-1.5 flex-wrap">
+                        <span>Top:</span>
+                        {sector.top_movers.slice(0, 3).map((mover) => {
+                          const ticker = mover.split(" ")[0]
+                          return (
+                            <Link
+                              key={mover}
+                              href={`/stock/${ticker}`}
+                              className="font-mono font-bold text-text-primary hover:text-brand-red underline decoration-border-subtle"
+                            >
+                              {mover}
+                            </Link>
+                          )
+                        })}
                       </span>
                     </>
                   )}

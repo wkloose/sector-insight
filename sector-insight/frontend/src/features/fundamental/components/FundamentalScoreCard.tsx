@@ -91,4 +91,3 @@ export const FundamentalScoreCard: React.FC<FundamentalScoreCardProps> = ({
     </div>
   )
 }
-

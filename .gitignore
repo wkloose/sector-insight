@@ -25,6 +25,7 @@ __pycache__/
 *.db
 *.sqlite
 *.sqlite3
+!sector_insight.db
 
 # PRD Documents and Generation Scripts
 PRD*

@@ -7,8 +7,7 @@ import (
 	"sector-insight/backend/internal/client/sectors"
 	"sector-insight/backend/internal/config"
 	"sector-insight/backend/internal/service/community"
-	"sector-insight/backend/internal/service/foreignflow"
-	"sector-insight/backend/internal/service/fundamental"
+	"sector-insight/backend/internal/service/market"
 	"sector-insight/backend/internal/service/sector"
 	"sector-insight/backend/internal/service/sentiment"
 
@@ -35,29 +34,16 @@ func (j *JobRunner) StartScheduledJobs() {
 	trackedTickers := []string{"BBCA", "BBRI", "BMRI", "BBNI", "BBTN", "BRIS", "BDMN"}
 
 	go func() {
-		log.Println("[STARTUP] Running initial live data sync from Sectors API...")
-		if _, err := sentiment.SyncLiveNewsFromSectors(j.cfg, j.sectorsClient, j.aiClient); err != nil {
-			log.Printf("[STARTUP] Initial news sync error: %v", err)
-		}
-		if err := fundamental.SyncFundamentalsFromReports(j.sectorsClient); err != nil {
-			log.Printf("[STARTUP] Initial fundamental sync error: %v", err)
-		}
-		if err := foreignflow.SyncForeignFlowAndDetectAnomalies(j.sectorsClient); err != nil {
-			log.Printf("[STARTUP] Initial foreign flow sync error: %v", err)
+		log.Println("[STARTUP] Running initial stock quote synchronization...")
+		if _, err := market.SyncLiveStockQuotes(j.sectorsClient); err != nil {
+			log.Printf("[STARTUP] Initial stock quote sync error: %v", err)
 		}
 	}()
 
-	j.cronEngine.AddFunc("*/30 * * * *", func() {
-		log.Println("[CRON] Running 30-minute Realtime News Ingestion Job...")
-		if _, err := sentiment.SyncLiveNewsFromSectors(j.cfg, j.sectorsClient, j.aiClient); err != nil {
-			log.Printf("[CRON] News Ingestion error: %v", err)
-		}
-	})
-
-	j.cronEngine.AddFunc("0 17 * * 1-5", func() {
-		log.Println("[CRON] Running Daily Foreign Flow & Anomaly Detection...")
-		if err := foreignflow.SyncForeignFlowAndDetectAnomalies(j.sectorsClient); err != nil {
-			log.Printf("[CRON] Foreign Flow Detection error: %v", err)
+	j.cronEngine.AddFunc("*/5 * * * *", func() {
+		log.Println("[CRON] Running 5-Minute Live Stock Quote Synchronization Job...")
+		if _, err := market.SyncLiveStockQuotes(j.sectorsClient); err != nil {
+			log.Printf("[CRON] Stock quote sync error: %v", err)
 		}
 	})
 
@@ -65,13 +51,6 @@ func (j *JobRunner) StartScheduledJobs() {
 		log.Println("[CRON] Running Daily Sentiment Aggregator Job...")
 		if err := sentiment.RunDailySentimentAggregation(trackedTickers); err != nil {
 			log.Printf("[CRON] Daily Sentiment Aggregation error: %v", err)
-		}
-	})
-
-	j.cronEngine.AddFunc("0 6 * * *", func() {
-		log.Println("[CRON] Running Daily Fundamental Quarterly Polling...")
-		if err := fundamental.SyncFundamentalsFromReports(j.sectorsClient); err != nil {
-			log.Printf("[CRON] Fundamental Polling error: %v", err)
 		}
 	})
 
@@ -92,10 +71,9 @@ func (j *JobRunner) StartScheduledJobs() {
 	})
 
 	j.cronEngine.Start()
-	log.Println("Cron job scheduler started successfully with all background pipelines active.")
+	log.Println("Cron job scheduler started successfully.")
 }
 
 func (j *JobRunner) Stop() {
 	j.cronEngine.Stop()
 }
-

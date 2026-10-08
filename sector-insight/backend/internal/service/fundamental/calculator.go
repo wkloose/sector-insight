@@ -31,7 +31,7 @@ func CalculateLDRScore(ldr float64) float64 {
 		diff = ldr - 92.0
 	}
 
-	penalty := diff * 2.0
+	penalty := diff * 3.0
 	score := 100.0 - penalty
 	if score < 0 {
 		return 0

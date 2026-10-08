@@ -2,62 +2,65 @@ package main
 
 import (
 	"fmt"
-	"io"
-	"net/http"
-	"time"
+	"log"
 
+	"sector-insight/backend/internal/client/sectors"
 	"sector-insight/backend/internal/config"
+	"sector-insight/backend/internal/service/market"
 )
 
 func main() {
 	fmt.Println("================================================================")
-	fmt.Println("  TESTING LIVE SECTORS API (https://api.sectors.app/v2)")
+	fmt.Println("  TESTING LIVE SECTORS API v2 (Client & Quote Sync)")
 	fmt.Println("================================================================")
 
 	cfg := config.LoadConfig()
 
 	if cfg.SectorsAPIKey == "" || cfg.SectorsAPIKey == "your_sectors_api_key_here" {
-		fmt.Println("[WARNING] SECTORS_API_KEY belum diisi di backend/.env!")
-		fmt.Println("Silakan isi SECTORS_API_KEY di file:")
-		fmt.Println("  sector-insight/backend/.env")
-		fmt.Println("Lalu jalankan skrip ini kembali.")
+		log.Println("[WARNING] SECTORS_API_KEY belum diisi di backend/.env!")
 		return
 	}
 
-	client := &http.Client{Timeout: 10 * time.Second}
+	client := sectors.NewClient(cfg.SectorsBaseURL, cfg.SectorsAPIKey)
 
-	testEndpoints := []string{
-		"/companies/?sub_sector=banks",
-		"/company/report/BBCA/",
-	}
-
-	for _, ep := range testEndpoints {
-		url := fmt.Sprintf("%s%s", cfg.SectorsBaseURL, ep)
-		fmt.Printf("\n[REQUEST] GET %s\n", url)
-
-		req, err := http.NewRequest("GET", url, nil)
-		if err != nil {
-			fmt.Printf("Error creating request: %v\n", err)
-			continue
-		}
-		req.Header.Set("Authorization", cfg.SectorsAPIKey)
-		req.Header.Set("Accept", "application/json")
-
-		resp, err := client.Do(req)
-		if err != nil {
-			fmt.Printf("HTTP Request failed: %v\n", err)
-			continue
-		}
-		defer resp.Body.Close()
-
-		body, _ := io.ReadAll(resp.Body)
-		fmt.Printf("[RESPONSE] Status: %s\n", resp.Status)
-		if len(body) > 300 {
-			fmt.Printf("Preview Body: %s...\n", string(body[:300]))
-		} else {
-			fmt.Printf("Body: %s\n", string(body))
+	fmt.Println("\n[1] Testing FetchBankingCompanies()...")
+	comps, err := client.FetchBankingCompanies()
+	if err != nil {
+		fmt.Printf("FetchBankingCompanies error: %v\n", err)
+	} else {
+		fmt.Printf("Retrieved %d banking companies.\n", len(comps))
+		for i, c := range comps {
+			if i < 5 {
+				fmt.Printf("  - %s: %s\n", c.Symbol, c.CompanyName)
+			}
 		}
 	}
+
+	fmt.Println("\n[2] Testing FetchDailyPrices('BBCA')...")
+	dailyPrices, err := client.FetchDailyPrices("BBCA")
+	if err != nil {
+		fmt.Printf("FetchDailyPrices error: %v\n", err)
+	} else {
+		fmt.Printf("Retrieved %d daily price records for BBCA.\n", len(dailyPrices))
+		if len(dailyPrices) > 0 {
+			latest := dailyPrices[len(dailyPrices)-1]
+			fmt.Printf("  Latest: Date=%s, Close=%.0f, Volume=%d, MarketCap=%.0f\n",
+				latest.Date, latest.Close, latest.Volume, latest.MarketCap)
+		}
+	}
+
+	fmt.Println("\n[3] Testing market.SyncLiveStockQuotes(client)...")
+	quotes, err := market.SyncLiveStockQuotes(client)
+	if err != nil {
+		fmt.Printf("SyncLiveStockQuotes error: %v\n", err)
+	} else {
+		fmt.Printf("Synced %d stock quotes:\n", len(quotes))
+		for _, q := range quotes {
+			fmt.Printf("  [%s] %s | Price: %.0f | Chg: %.2f%% (%.0f) | Status: %s | Mcap: %.2e | Cov: %d\n",
+				q.Ticker, q.Name, q.Price, q.ChangePercent, q.Change, q.Status, q.MarketCap, q.Coverage)
+		}
+	}
+
 	fmt.Println("================================================================")
 }
 

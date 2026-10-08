@@ -126,4 +126,3 @@ export const ScreenerTable: React.FC<ScreenerTableProps> = ({ data }) => {
 
   return <DataTable columns={columns} data={data} />
 }
-

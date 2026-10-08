@@ -18,6 +18,7 @@ bin/
 *.db
 *.sqlite
 *.sqlite3
+!sector_insight.db
 
 # Python Virtual Environments & Caches
 venv/

@@ -59,4 +59,3 @@ export const TimeRangeFilter: React.FC<TimeRangeFilterProps> = ({
     </div>
   )
 }
-

@@ -49,3 +49,54 @@ export interface ForeignFlowDetail {
   synthesisConfidence: number
 }
 
+export interface SectorFlowItem {
+  sector_slug: string
+  sector_name: string
+  net_flow: number
+  status: string
+}
+
+export interface MarketHistoryPoint {
+  date: string
+  net_flow: number
+  cumulative_flow: number
+}
+
+export interface TopFlowStock {
+  ticker: string
+  name: string
+  sector: string
+  price: number
+  change_percent: number
+  net_flow: number
+  dominant_broker: string
+}
+
+export interface MarketForeignFlowSummary {
+  total_net_flow_today: number
+  total_foreign_buy: number
+  total_foreign_sell: number
+  foreign_participation_percent: number
+  net_flow_7d: number
+  net_flow_30d: number
+  net_flow_90d: number
+  sector_breakdown: SectorFlowItem[]
+  history_30d: MarketHistoryPoint[]
+  top_accumulated: TopFlowStock[]
+  top_distributed: TopFlowStock[]
+}
+
+export interface StockForeignFlowItem {
+  ticker: string
+  name: string
+  sector: string
+  price: number
+  change_percent: number
+  net_foreign_flow: number
+  foreign_buy: number
+  foreign_sell: number
+  z_score: number
+  anomaly_status: string
+  accumulation_status: string
+  dominant_broker: string
+}

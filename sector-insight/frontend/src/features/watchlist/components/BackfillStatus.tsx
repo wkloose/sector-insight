@@ -52,4 +52,3 @@ export const BackfillStatus: React.FC<BackfillStatusProps> = ({ workers }) => {
     </section>
   )
 }
-

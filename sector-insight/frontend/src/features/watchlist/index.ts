@@ -4,4 +4,3 @@ export * from "./components/BackfillStatus"
 export * from "./components/TickerSearch"
 export * from "./components/WatchedStockList"
 export * from "./components/WatchlistManager"
-

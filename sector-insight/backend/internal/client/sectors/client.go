@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 )
 
@@ -73,6 +75,18 @@ type SubsectorItem struct {
 	Subsector string `json:"subsector"`
 }
 
+type CompanyItem struct {
+	Symbol      string `json:"symbol"`
+	CompanyName string `json:"company_name"`
+}
+
+type DailyTransactionItem struct {
+	Date      string  `json:"date"`
+	Close     float64 `json:"close"`
+	Volume    int64   `json:"volume"`
+	MarketCap float64 `json:"market_cap"`
+}
+
 type CompanyReportResponse struct {
 	Symbol      string                 `json:"symbol"`
 	CompanyName string                 `json:"company_name"`
@@ -80,6 +94,7 @@ type CompanyReportResponse struct {
 	Valuation   map[string]interface{} `json:"valuation"`
 	Financials  map[string]interface{} `json:"financials"`
 	Dividend    map[string]interface{} `json:"dividend"`
+	Future      map[string]interface{} `json:"future"`
 }
 
 func (c *Client) FetchNewsByTicker(ticker string) ([]NewsItem, error) {
@@ -323,4 +338,109 @@ func (c *Client) FetchTopBrokers(ticker string, date string) ([]BrokerTransactio
 		{BrokerCode: "AK", BrokerName: "UBS Sekuritas Indonesia", Category: "Asing-Institusional", NetValue: 125000000000},
 	}, nil
 }
+
+func (c *Client) FetchBankingCompanies() ([]CompanyItem, error) {
+	v := url.Values{}
+	v.Set("where", "sub_sector = 'banks'")
+	endpoint := fmt.Sprintf("/companies/?%s", v.Encode())
+
+	items, err := c.fetchCompaniesFromEndpoint(endpoint)
+	if err == nil && len(items) > 0 {
+		return items, nil
+	}
+
+	fallbackEndpoint := "/companies/?q=banks&limit=50"
+	fallbackItems, errFallback := c.fetchCompaniesFromEndpoint(fallbackEndpoint)
+	if errFallback == nil && len(fallbackItems) > 0 {
+		return fallbackItems, nil
+	}
+
+	if err != nil {
+		return nil, err
+	}
+	return fallbackItems, errFallback
+}
+
+func (c *Client) fetchCompaniesFromEndpoint(endpoint string) ([]CompanyItem, error) {
+	req, err := c.newRequest("GET", endpoint)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("sectors api companies error: status %d", resp.StatusCode)
+	}
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var envelope struct {
+		Results []CompanyItem `json:"results"`
+	}
+	if err := json.Unmarshal(bodyBytes, &envelope); err == nil && len(envelope.Results) > 0 {
+		return envelope.Results, nil
+	}
+
+	var directList []CompanyItem
+	if err := json.Unmarshal(bodyBytes, &directList); err == nil && len(directList) > 0 {
+		return directList, nil
+	}
+
+	return nil, fmt.Errorf("no companies returned")
+}
+
+func (c *Client) FetchDailyPrices(ticker string) ([]DailyTransactionItem, error) {
+	cleanTicker := strings.TrimSpace(ticker)
+	if cleanTicker == "" {
+		return nil, fmt.Errorf("empty ticker")
+	}
+	req, err := c.newRequest("GET", fmt.Sprintf("/daily/%s/", cleanTicker))
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("sectors api daily error: status %d", resp.StatusCode)
+	}
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var directList []DailyTransactionItem
+	if err := json.Unmarshal(bodyBytes, &directList); err == nil && len(directList) > 0 {
+		return directList, nil
+	}
+
+	var envelope struct {
+		Data    []DailyTransactionItem `json:"data"`
+		Results []DailyTransactionItem `json:"results"`
+	}
+	if err := json.Unmarshal(bodyBytes, &envelope); err == nil {
+		if len(envelope.Data) > 0 {
+			return envelope.Data, nil
+		}
+		if len(envelope.Results) > 0 {
+			return envelope.Results, nil
+		}
+	}
+
+	return nil, fmt.Errorf("failed to decode daily prices response")
+}
+
 

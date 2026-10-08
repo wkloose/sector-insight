@@ -5,13 +5,16 @@ export interface WatchedStock {
   name: string
   subsector: string
   category: string
+  sector?: string
   addedAt: string
   ingestionStatus: "Lengkap" | "Sinkronisasi" | "Tertunda"
   ingestionDetail?: string
   fundamentalScore: number
+  nimScore?: number
   status: StatusType | "STABLE" | "WARNING" | "CRITICAL" | "Stabil" | "Waspada" | "Perhatian Khusus"
   price: number
   priceChange: number
+  analystCoverage?: number
 }
 
 export interface SearchStockResult {
@@ -45,4 +48,3 @@ export interface WatchlistAlertConfig {
   fundamentalHighThreshold: number
   policyExposureThreshold: number
 }
-

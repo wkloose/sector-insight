@@ -104,4 +104,3 @@ export const ForeignFlowChart: React.FC<ForeignFlowChartProps> = ({
     </div>
   )
 }
-

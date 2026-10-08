@@ -81,34 +81,34 @@ func SyncLiveNewsFromSectors(cfg *config.Config, sectorsClient *sectors.Client, 
 
 			var existing model.RawArticle
 			database.DB.Where("external_id = ?", externalID).First(&existing)
-			if existing.ID != 0 {
-
-				var proc model.ProcessedArticle
-				database.DB.Where("article_id = ?", existing.ID).First(&proc)
-				if proc.ID != 0 {
-					scoredArticles = append(scoredArticles, ScoredArticle{
-						Category:       proc.Category,
-						SentimentScore: proc.SentimentScore,
-						Confidence:     proc.Confidence,
-						PublishDate:    existing.TanggalPublikasi,
-					})
+			raw := existing
+			if existing.ID == 0 {
+				raw = model.RawArticle{
+					ExternalID:       externalID,
+					Ticker:           ticker,
+					Judul:            item.Title,
+					Snippet:          item.Body,
+					URL:              item.Source,
+					TanggalPublikasi: pubDate,
+					Tags:             string(tagsJSON),
+					StatusDiproses:   true,
+					CreatedAt:        time.Now(),
 				}
+				database.DB.Create(&raw)
+				totalNew++
+			}
+
+			var proc model.ProcessedArticle
+			database.DB.Where("article_id = ?", raw.ID).First(&proc)
+			if proc.ID != 0 {
+				scoredArticles = append(scoredArticles, ScoredArticle{
+					Category:       proc.Category,
+					SentimentScore: proc.SentimentScore,
+					Confidence:     proc.Confidence,
+					PublishDate:    raw.TanggalPublikasi,
+				})
 				continue
 			}
-
-			raw := model.RawArticle{
-				ExternalID:       externalID,
-				Ticker:           ticker,
-				Judul:            item.Title,
-				Snippet:          item.Body,
-				URL:              item.Source,
-				TanggalPublikasi: pubDate,
-				Tags:             string(tagsJSON),
-				StatusDiproses:   true,
-				CreatedAt:        time.Now(),
-			}
-			database.DB.Create(&raw)
-			totalNew++
 
 			aiReq := []ai.ArticleAnalysisRequest{
 				{
@@ -123,7 +123,7 @@ func SyncLiveNewsFromSectors(cfg *config.Config, sectorsClient *sectors.Client, 
 			if err == nil && len(aiResp.Results) > 0 {
 				res := aiResp.Results[0]
 				entitiesJSON, _ := json.Marshal(res.AffectedEntities)
-				proc := model.ProcessedArticle{
+				proc = model.ProcessedArticle{
 					ArticleID:        raw.ID,
 					Category:         res.Category,
 					AffectedEntities: string(entitiesJSON),
@@ -175,23 +175,28 @@ func SyncLiveNewsFromSectors(cfg *config.Config, sectorsClient *sectors.Client, 
 
 			var existing model.RawArticle
 			database.DB.Where("external_id = ?", externalID).First(&existing)
-			if existing.ID != 0 {
-				continue
+			raw := existing
+			if existing.ID == 0 {
+				raw = model.RawArticle{
+					ExternalID:       externalID,
+					Ticker:           "SECTOR",
+					Judul:            item.Title,
+					Snippet:          item.Body,
+					URL:              item.Source,
+					TanggalPublikasi: pubDate,
+					Tags:             string(tagsJSON),
+					StatusDiproses:   true,
+					CreatedAt:        time.Now(),
+				}
+				database.DB.Create(&raw)
+				totalNew++
 			}
 
-			raw := model.RawArticle{
-				ExternalID:       externalID,
-				Ticker:           "SECTOR",
-				Judul:            item.Title,
-				Snippet:          item.Body,
-				URL:              item.Source,
-				TanggalPublikasi: pubDate,
-				Tags:             string(tagsJSON),
-				StatusDiproses:   true,
-				CreatedAt:        time.Now(),
+			var proc model.ProcessedArticle
+			database.DB.Where("article_id = ?", raw.ID).First(&proc)
+			if proc.ID != 0 {
+				continue
 			}
-			database.DB.Create(&raw)
-			totalNew++
 
 			aiReq := []ai.ArticleAnalysisRequest{
 				{
@@ -205,7 +210,7 @@ func SyncLiveNewsFromSectors(cfg *config.Config, sectorsClient *sectors.Client, 
 			if err == nil && len(aiResp.Results) > 0 {
 				res := aiResp.Results[0]
 				entitiesJSON, _ := json.Marshal(res.AffectedEntities)
-				proc := model.ProcessedArticle{
+				proc = model.ProcessedArticle{
 					ArticleID:        raw.ID,
 					Category:         "macro_policy",
 					AffectedEntities: string(entitiesJSON),

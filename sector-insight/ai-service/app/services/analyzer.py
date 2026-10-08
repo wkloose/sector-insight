@@ -2,8 +2,19 @@ import json
 import logging
 from typing import List
 from app.config import settings
-from app.models.schemas import ArticleInput, ArticleAnalysis
-from app.services.prompts import SYSTEM_PROMPT, build_user_prompt
+from app.models.schemas import (
+    ArticleInput,
+    ArticleAnalysis,
+    StockCompareItem,
+    CompareStocksResponse,
+    StockRankVerdict,
+)
+from app.services.prompts import (
+    SYSTEM_PROMPT,
+    build_user_prompt,
+    COMPARE_SYSTEM_PROMPT,
+    build_compare_prompt,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -107,6 +118,119 @@ class ArticleAnalyzer:
             sentiment_score=score,
             confidence=0.85,
             reasoning=reason
+        )
+
+    async def analyze_comparison(self, stocks: List[StockCompareItem]) -> CompareStocksResponse:
+        if self.client and len(stocks) >= 2:
+            try:
+                user_msg = build_compare_prompt(stocks)
+                response = self.client.models.generate_content(
+                    model=settings.MODEL_NAME,
+                    contents=user_msg,
+                    config=types.GenerateContentConfig(
+                        system_instruction=COMPARE_SYSTEM_PROMPT,
+                        response_mime_type="application/json",
+                        response_schema=CompareStocksResponse,
+                        temperature=0.3,
+                    ),
+                )
+                data = json.loads(response.text)
+                return CompareStocksResponse(**data)
+            except Exception as e:
+                logger.error(f"Error calling LLM for stock comparison: {e}")
+
+        return self._heuristic_compare_fallback(stocks)
+
+    def _heuristic_compare_fallback(self, stocks: List[StockCompareItem]) -> CompareStocksResponse:
+        if not stocks:
+            return CompareStocksResponse(
+                executive_summary="Tidak ada data saham untuk dibandingkan.",
+                verdict_winner="-",
+                verdict_rationale="Pilih minimal 2 saham.",
+                rankings=[],
+                pillar1_fundamental_comparison="",
+                pillar2_foreign_flow_comparison="",
+                pillar3_sentiment_comparison="",
+                actionable_recommendations=[],
+                confidence_score=0.5,
+            )
+
+        scored = []
+        for s in stocks:
+            score = (s.fundamental_score * 0.40) + \
+                    (min(max(s.roe * 2.0, 0), 40) * 0.20) + \
+                    ((50.0 + min(max(s.foreign_z_score * 15.0, -40), 40)) * 0.20) + \
+                    ((50.0 + (s.sentiment_score * 40.0)) * 0.20)
+            scored.append((score, s))
+
+        scored.sort(key=lambda x: x[0], reverse=True)
+        winner = scored[0][1]
+
+        rankings = []
+        for idx, (tot_score, s) in enumerate(scored):
+            strengths = []
+            if s.fundamental_score >= 80:
+                strengths.append(f"Kesehatan fundamental prima ({s.fundamental_score:.1f}/100)")
+            elif s.fundamental_score >= 70:
+                strengths.append(f"Fundamental solid ({s.fundamental_score:.1f}/100)")
+            if s.roe >= 15:
+                strengths.append(f"Profitabilitas tinggi dengan ROE {s.roe:.1f}%")
+            if s.net_foreign_flow > 0:
+                strengths.append(f"Akumulasi institusi/asing positif (+Rp {s.net_foreign_flow:,.0f})")
+            if s.sentiment_score > 0.2:
+                strengths.append(f"Sentimen pasar optimis ({s.sentiment_label})")
+            if not strengths:
+                strengths.append(f"Valuasi wajar di sektor {s.sector}")
+
+            risks = []
+            if s.pe > 25:
+                risks.append(f"Valuasi PE premium ({s.pe:.1f}x)")
+            if s.net_foreign_flow < 0:
+                risks.append("Tekanan distribusi asing jangka pendek")
+            if s.sentiment_score < -0.1:
+                risks.append("Sentimen berita sedang tertekan")
+            if s.fundamental_score < 70:
+                risks.append("Perlu pemantauan metrik likuiditas dan solvabilitas")
+            if not risks:
+                risks.append("Volatilitas pasar dan sentimen makro")
+
+            investor_fit = "Core Long-Term Holding" if s.fundamental_score >= 80 and s.roe >= 15 else ("Growth & Momentum" if s.net_foreign_flow > 0 else "Value & Tactical Swing")
+            title = "Market Leader" if idx == 0 else ("Challenger" if idx == 1 else "Alternative Play")
+
+            rankings.append(StockRankVerdict(
+                ticker=s.ticker,
+                rank=idx + 1,
+                title=title,
+                score=round(tot_score, 1),
+                strengths=strengths,
+                risks=risks,
+                investor_fit=investor_fit
+            ))
+
+        tickers_str = ", ".join(s.ticker for s in stocks)
+        exec_sum = f"Analisis komparatif head-to-head {tickers_str} menunjukkan {winner.ticker} memimpin dengan skor komposit tertinggi {scored[0][0]:.1f}/100, ditopang oleh fundamental yang kokoh dan dukungan arus dana institusional."
+        rationale = f"{winner.ticker} mengungguli kompetitornya berkat kombinasi fundamental health score {winner.fundamental_score:.1f}/100, efisiensi ROE {winner.roe:.1f}%, serta stabilitas arus institusi asing."
+
+        p1 = f"Pada pilar fundamental, {winner.ticker} memiliki profil terkuat dengan ROE {winner.roe:.1f}% dan PE {winner.pe:.1f}x vs rerata sektor. Fundamental Health Score berada di kategori {winner.health_status}."
+        p2 = f"Pada pilar foreign flow, {winner.ticker} mencatatkan aliran bersih {winner.net_foreign_flow:+,.0f} IDR dengan Z-Score {winner.foreign_z_score:.2f} ({winner.foreign_anomaly})."
+        p3 = f"Pada pilar sentimen, dinamika pasar mencerminkan bias {winner.sentiment_label} (skor {winner.sentiment_score:+.2f})."
+
+        recs = [
+            f"Alokasi bobot utama pada {winner.ticker} sebagai core portfolio holding.",
+            f"Manfaatkan pullback teknikal untuk akumulasi bertahap pada {winner.ticker}.",
+            f"Pantau kelanjutan arus asing dan rilis laporan keuangan kuartalan berikutnya."
+        ]
+
+        return CompareStocksResponse(
+            executive_summary=exec_sum,
+            verdict_winner=winner.ticker,
+            verdict_rationale=rationale,
+            rankings=rankings,
+            pillar1_fundamental_comparison=p1,
+            pillar2_foreign_flow_comparison=p2,
+            pillar3_sentiment_comparison=p3,
+            actionable_recommendations=recs,
+            confidence_score=0.90
         )
 
 analyzer_service = ArticleAnalyzer()

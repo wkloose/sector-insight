@@ -1,11 +1,13 @@
 import React from "react"
 import { cn } from "@/src/shared/lib/cn"
+import { sanitizeSearchInput } from "@/src/shared/lib/security"
 
 export interface SearchInputProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "size"> {
   shortcut?: string
   onClear?: () => void
   containerClassName?: string
+  sanitize?: boolean
 }
 
 export const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(
@@ -18,10 +20,19 @@ export const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(
       value,
       onChange,
       onClear,
+      sanitize = true,
+      maxLength = 100,
       ...props
     },
     ref
   ) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (sanitize) {
+        e.target.value = sanitizeSearchInput(e.target.value, maxLength)
+      }
+      onChange?.(e)
+    }
+
     return (
       <div className={cn("relative flex items-center w-full", containerClassName)}>
         <span className="material-symbols-outlined absolute left-space-sm text-[18px] text-text-secondary pointer-events-none">
@@ -31,11 +42,12 @@ export const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(
           ref={ref}
           type="text"
           value={value}
-          onChange={onChange}
+          onChange={handleChange}
+          maxLength={maxLength}
           placeholder={placeholder}
           aria-label={props["aria-label"] || placeholder}
           className={cn(
-            "w-full bg-surface-container-lowest border border-border-subtle rounded py-2 pl-9 pr-12 font-body-sm text-body-sm text-text-primary placeholder:text-text-secondary focus:outline-none focus:border-brand-red focus-visible:ring-1 focus-visible:ring-brand-red transition-colors",
+            "w-full bg-surface-container-lowest border border-border-subtle rounded py-2 pl-9 pr-12 font-body-sm text-body-sm text-text-primary placeholder:text-text-secondary focus:outline-none focus:border-brand-red focus-visible:ring-1 focus-visible:ring-brand-red transition-all duration-150 hover:border-border-subtle/80",
             className
           )}
           {...props}
@@ -45,7 +57,7 @@ export const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(
             type="button"
             onClick={onClear}
             aria-label="Hapus teks pencarian"
-            className="absolute right-1 w-8 h-8 flex items-center justify-center text-text-secondary hover:text-text-primary rounded cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-brand-red"
+            className="absolute right-1 w-8 h-8 flex items-center justify-center text-text-secondary hover:text-text-primary rounded cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-brand-red transition-colors"
           >
             <span className="material-symbols-outlined text-[16px]">close</span>
           </button>
@@ -60,4 +72,3 @@ export const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(
 )
 
 SearchInput.displayName = "SearchInput"
-

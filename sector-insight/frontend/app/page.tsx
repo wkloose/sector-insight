@@ -2,6 +2,10 @@ import React from "react"
 import { Metadata } from "next"
 import Link from "next/link"
 import Image from "next/image"
+import { getFundamentalScore } from "@/src/features/fundamental"
+import { getForeignFlowData } from "@/src/features/foreign-flow"
+import { getMarketSummary } from "@/src/features/market"
+import { getSectorRanking } from "@/src/features/sectors"
 
 export const metadata: Metadata = {
   title: {
@@ -10,7 +14,21 @@ export const metadata: Metadata = {
   description: "Platform intelijen sektor keuangan perbankan Indonesia (IDX) berbasis Fundamental, Arus Modal Asing, dan Sentimen Berita.",
 }
 
-export default function HomePage() {
+export default async function HomePage() {
+  const [bbriFund, bbriFlow, marketSummary, sectorRanking] = await Promise.all([
+    getFundamentalScore("BBRI"),
+    getForeignFlowData("BBRI"),
+    getMarketSummary(),
+    getSectorRanking(),
+  ])
+
+  const anomalyFlowFormatted = bbriFlow.anomalies14d[0]?.netFlowFormatted || bbriFlow.totalNetFlowFormatted
+  const bbriZScoreFormatted = `${bbriFlow.yesterdayZScore >= 0 ? "+" : ""}${bbriFlow.yesterdayZScore.toFixed(2)}σ`
+  const ihsgChangeFormatted =
+    typeof marketSummary.ihsg_change_percent === "number"
+      ? `${marketSummary.ihsg_change_percent >= 0 ? "+" : ""}${marketSummary.ihsg_change_percent.toFixed(2)}%`
+      : String(marketSummary.ihsg_change_percent || "+0.49%")
+
   return (
     <div className="min-h-screen bg-surface text-text-primary flex flex-col select-none">
       <header className="h-16 border-b border-border-subtle bg-surface-container-lowest flex items-center justify-between px-6 md:px-margin">
@@ -36,6 +54,9 @@ export default function HomePage() {
         <nav className="hidden md:flex items-center gap-space-lg text-body-sm font-medium text-text-secondary">
           <Link href="/dashboard" className="hover:text-text-primary transition-colors">
             Terminal
+          </Link>
+          <Link href="/sectors" className="hover:text-text-primary transition-colors">
+            Sektor
           </Link>
           <Link href="/screener" className="hover:text-text-primary transition-colors">
             Screener
@@ -64,7 +85,7 @@ export default function HomePage() {
         <section className="text-center flex flex-col items-center my-space-xl max-w-4xl">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded bg-brand-red/15 border border-brand-red/30 text-brand-red font-caption text-caption font-semibold mb-space-md">
             <span className="w-2 h-2 rounded-full bg-brand-red animate-pulse" />
-            <span>SECTORS HACKATHON 2026 • TRACK 03: MARKET INTELLIGENCE</span>
+            <span>IHSG {ihsgChangeFormatted} • SECTORS HACKATHON 2026 • TRACK 03: MARKET INTELLIGENCE</span>
           </div>
 
           <h1 className="font-headline-lg text-3xl md:text-5xl font-bold tracking-tight text-text-primary leading-tight mb-space-md">
@@ -99,9 +120,11 @@ export default function HomePage() {
 
         <section className="grid grid-cols-2 md:grid-cols-4 gap-space-md w-full mb-space-xl">
           <div className="p-space-lg bg-surface-card rounded border border-border-subtle text-center">
-            <span className="font-mono text-3xl font-bold text-text-primary">44</span>
+            <span className="font-mono text-3xl font-bold text-text-primary">
+              {sectorRanking.length || 11}
+            </span>
             <span className="block font-caption text-caption text-text-secondary mt-1">
-              Emiten Sektor Finansial
+              Sektor IDX-IC
             </span>
           </div>
           <div className="p-space-lg bg-surface-card rounded border border-border-subtle text-center">
@@ -131,10 +154,10 @@ export default function HomePage() {
                 CONTOH KASUS LIVE: BBRI
               </span>
               <h3 className="font-headline-sm text-headline-sm font-bold text-text-primary mt-1">
-                Fundamental Kuat Divergen dengan Outflow Asing Masif (-2.80σ)
+                Fundamental Kuat Divergen dengan Outflow Asing Masif ({bbriZScoreFormatted})
               </h3>
               <p className="font-body-sm text-body-sm text-text-secondary mt-1 max-w-2xl">
-                Skor fundamental 71/100, namun net sell broker asing mencapai Rp 89M dalam 1 hari disertai sentimen negatif regulasi mikro OJK. Sistem mendeteksi sinyal waspada dan menghasilkan peringatan otomatis.
+                Skor fundamental {bbriFund.score}/100 ({bbriFund.status}). {bbriFlow.synthesisSentence || `Arus modal asing mencatat ${anomalyFlowFormatted} (${bbriZScoreFormatted}). Sistem mendeteksi sinyal waspada dan menghasilkan peringatan otomatis.`}
               </p>
             </div>
             <Link
@@ -211,4 +234,3 @@ export default function HomePage() {
     </div>
   )
 }
-

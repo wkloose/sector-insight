@@ -12,4 +12,3 @@ export interface Broker {
   volume?: number
   action?: "net_buy" | "net_sell" | "neutral"
 }
-

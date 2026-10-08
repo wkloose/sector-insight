@@ -33,4 +33,3 @@ export const TickerBadge: React.FC<TickerBadgeProps> = ({
     </div>
   )
 }
-

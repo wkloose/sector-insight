@@ -12,6 +12,7 @@ import (
 )
 
 func SetupRouter(cfg *config.Config, sectorsClient *sectors.Client, aiClient *ai.Client) http.Handler {
+	SetSectorsClient(sectorsClient)
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -40,10 +41,29 @@ func SetupRouter(cfg *config.Config, sectorsClient *sectors.Client, aiClient *ai
 		}
 	})
 
+	mux.HandleFunc("/api/v1/foreign-flow/market", func(w http.ResponseWriter, r *http.Request) {
+		HandleGetMarketForeignFlow(w, r)
+	})
+	mux.HandleFunc("/api/v1/foreign-flow/stocks", func(w http.ResponseWriter, r *http.Request) {
+		HandleGetAllStockForeignFlows(w, r)
+	})
 	mux.HandleFunc("/api/v1/foreign-flow/summary", func(w http.ResponseWriter, r *http.Request) {
 		HandleGetForeignFlowSummary(w, r)
 	})
 	mux.HandleFunc("/api/v1/foreign-flow/", func(w http.ResponseWriter, r *http.Request) {
+		trimmed := strings.Trim(r.URL.Path, "/")
+		if trimmed == "api/v1/foreign-flow/market" {
+			HandleGetMarketForeignFlow(w, r)
+			return
+		}
+		if trimmed == "api/v1/foreign-flow/stocks" {
+			HandleGetAllStockForeignFlows(w, r)
+			return
+		}
+		if trimmed == "api/v1/foreign-flow/summary" {
+			HandleGetForeignFlowSummary(w, r)
+			return
+		}
 		if strings.HasSuffix(r.URL.Path, "/anomalies") {
 			HandleGetForeignFlowAnomalies(w, r)
 		} else {
@@ -69,11 +89,48 @@ func SetupRouter(cfg *config.Config, sectorsClient *sectors.Client, aiClient *ai
 		HandleGetCompositeAlert(w, r)
 	})
 
+	mux.HandleFunc("/api/v1/market/summary", func(w http.ResponseWriter, r *http.Request) {
+		HandleGetMarketSummary(w, r)
+	})
+	mux.HandleFunc("/api/v1/market/summary/", func(w http.ResponseWriter, r *http.Request) {
+		HandleGetMarketSummary(w, r)
+	})
+
+	mux.HandleFunc("/api/v1/stocks", func(w http.ResponseWriter, r *http.Request) {
+		HandleGetStockQuotes(w, r)
+	})
+	mux.HandleFunc("/api/v1/stocks/universe", func(w http.ResponseWriter, r *http.Request) {
+		HandleGetStockUniverse(w, r)
+	})
+	mux.HandleFunc("/api/v1/stocks/sectors", func(w http.ResponseWriter, r *http.Request) {
+		HandleGetStockSectors(w, r)
+	})
+	mux.HandleFunc("/api/v1/stocks/search", func(w http.ResponseWriter, r *http.Request) {
+		HandleWatchlistSearch(w, r)
+	})
+	mux.HandleFunc("/api/v1/watchlist/search", func(w http.ResponseWriter, r *http.Request) {
+		HandleWatchlistSearch(w, r)
+	})
+	mux.HandleFunc("/api/v1/stocks/quotes", func(w http.ResponseWriter, r *http.Request) {
+		HandleGetStockQuotes(w, r)
+	})
+	mux.HandleFunc("/api/v1/stocks/quotes/", func(w http.ResponseWriter, r *http.Request) {
+		HandleGetStockQuoteDetail(w, r)
+	})
+
 	mux.HandleFunc("/api/v1/stocks/", func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.URL.Path, "/beginner-brief") {
 			HandleGetBeginnerBrief(w, r)
+		} else if r.URL.Path == "/api/v1/stocks/" {
+			HandleGetStockQuotes(w, r)
+		} else if strings.HasPrefix(r.URL.Path, "/api/v1/stocks/universe") {
+			HandleGetStockUniverse(w, r)
+		} else if strings.HasPrefix(r.URL.Path, "/api/v1/stocks/sectors") {
+			HandleGetStockSectors(w, r)
+		} else if strings.HasPrefix(r.URL.Path, "/api/v1/stocks/search") {
+			HandleWatchlistSearch(w, r)
 		} else {
-			http.NotFound(w, r)
+			HandleGetStockQuoteDetail(w, r)
 		}
 	})
 	mux.HandleFunc("/api/v1/glossary", func(w http.ResponseWriter, r *http.Request) {
@@ -126,8 +183,16 @@ func SetupRouter(cfg *config.Config, sectorsClient *sectors.Client, aiClient *ai
 			"frontend_url": "http://localhost:3000",
 			"endpoints": {
 				"health": "/health",
+				"market_summary": "/api/v1/market/summary",
+				"stock_quotes": "/api/v1/stocks/quotes",
+				"stock_universe": "/api/v1/stocks/universe",
+				"stock_sectors": "/api/v1/stocks/sectors",
+				"stock_search": "/api/v1/stocks/search",
+				"watchlist_search": "/api/v1/watchlist/search",
 				"composite_alert": "/api/v1/composite-alert/summary",
 				"fundamental_score": "/api/v1/fundamental-score",
+				"foreign_flow_market": "/api/v1/foreign-flow/market",
+				"foreign_flow_stocks": "/api/v1/foreign-flow/stocks",
 				"foreign_flow": "/api/v1/foreign-flow/summary",
 				"sentiment": "/api/v1/sentiment/BBRI",
 				"sync_news": "/api/v1/sync/news"

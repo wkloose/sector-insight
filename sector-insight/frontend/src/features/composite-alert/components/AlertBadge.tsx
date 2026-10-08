@@ -35,4 +35,3 @@ export const AlertBadge: React.FC<AlertBadgeProps> = ({
     </span>
   )
 }
-

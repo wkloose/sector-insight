@@ -14,4 +14,3 @@ export const ROUTES = {
   COMMUNITY: "/community",
   SECTORS: "/sectors",
 } as const
-

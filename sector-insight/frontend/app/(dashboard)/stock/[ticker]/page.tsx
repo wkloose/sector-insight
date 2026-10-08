@@ -5,17 +5,10 @@ import { notFound } from "next/navigation"
 import { FundamentalScoreCard, getFundamentalScore } from "@/src/features/fundamental"
 import { SentimentCard, PolicyExposureCard, getSentimentData } from "@/src/features/sentiment"
 import { ForeignFlowChart, getForeignFlowData } from "@/src/features/foreign-flow"
-import { getCompositeAlertByTicker } from "@/src/features/composite-alert"
+import { StockModeView, getBeginnerBrief, getGlossary } from "@/src/features/beginner-brief"
 import { StatusBadge } from "@/src/shared/ui/StatusBadge"
 import { isValidTicker } from "@/src/shared/lib"
-import { getBeginnerBrief, getGlossary, StockModeView } from "@/src/features/beginner-brief"
-import {
-  getCrowdSentiment,
-  getCommunityPosts,
-  CrowdBarometerCard,
-  CommunityFeed,
-  DivergenceAlertBanner,
-} from "@/src/features/community"
+import { getStockQuotes } from "@/src/features/market"
 
 interface Props {
   params: Promise<{ ticker: string }>
@@ -244,27 +237,31 @@ export default async function StockDetailPage({ params }: Props) {
   }
   const upperTicker = ticker.toUpperCase()
 
-  const [
-    fundamentalData,
-    sentimentData,
-    foreignFlowData,
-    compositeAlert,
-    beginnerBrief,
-    glossary,
-    crowdSentiment,
-    communityPosts,
-  ] = await Promise.all([
+  const [fundamentalData, sentimentData, foreignFlowData, brief, glossary, quotes] = await Promise.all([
     getFundamentalScore(upperTicker),
     getSentimentData(upperTicker),
     getForeignFlowData(upperTicker),
-    getCompositeAlertByTicker(upperTicker),
     getBeginnerBrief(upperTicker),
     getGlossary(),
-    getCrowdSentiment(upperTicker),
-    getCommunityPosts(upperTicker),
+    getStockQuotes(),
   ])
 
-  const profile = getStockProfile(upperTicker, fundamentalData.bankName)
+  const initialProfile = getStockProfile(upperTicker, fundamentalData.bankName)
+  const quote = quotes.find((q) => q.ticker.toUpperCase() === upperTicker)
+  const profile: StockProfile = quote
+    ? {
+        ...initialProfile,
+        lastPrice: quote.price ? `Rp ${quote.price.toLocaleString("id-ID")}` : initialProfile.lastPrice,
+        priceChange: quote.change !== undefined ? `${quote.change >= 0 ? "+" : ""}${quote.change}` : initialProfile.priceChange,
+        priceChangePercent: quote.change_percent !== undefined ? `${quote.change_percent >= 0 ? "+" : ""}${quote.change_percent.toFixed(2).replace(".", ",")}%` : initialProfile.priceChangePercent,
+        isBullish: (quote.change_percent ?? quote.change ?? 0) >= 0,
+        volume: quote.volume ? `${(quote.volume / 1e6).toFixed(2)} M Lbr` : initialProfile.volume,
+        marketCap: quote.market_cap ? `Rp ${(quote.market_cap / 1e12).toFixed(2)} T` : initialProfile.marketCap,
+        analystConsensus: quote.analyst_coverage ? `${quote.analyst_coverage} Analis` : initialProfile.analystConsensus,
+        pbvRatio: quote.pbv !== undefined ? `${quote.pbv.toFixed(2).replace(".", ",")}x` : initialProfile.pbvRatio,
+        peRatio: quote.pe !== undefined ? `${quote.pe.toFixed(2).replace(".", ",")}x` : initialProfile.peRatio,
+      }
+    : initialProfile
 
   return (
     <div className="flex flex-col w-full pb-space-xl">
@@ -339,28 +336,7 @@ export default async function StockDetailPage({ params }: Props) {
         </div>
       </div>
 
-      <StockModeView ticker={upperTicker} brief={beginnerBrief} glossary={glossary}>
-        {crowdSentiment.divergence_status !== "NORMAL" && (
-          <DivergenceAlertBanner
-            alert={{
-              ticker: upperTicker,
-              alert_type: crowdSentiment.divergence_status,
-              severity: crowdSentiment.divergence_status === "EUPHORIA_DIVERGENCE" ? "CRITICAL" : "OPPORTUNITY",
-              headline:
-                crowdSentiment.divergence_status === "EUPHORIA_DIVERGENCE"
-                  ? `${upperTicker} ⚠️ PERINGATAN DIVERGENSI: Euforia Komunitas Ritel vs Tekanan Distribusi Asing`
-                  : `${upperTicker} 💡 PERINGATAN CAPITULATION: Kepanikan Ritel di Tengah Akumulasi Institusional Asing`,
-              crowd_summary: `Konsensus Komunitas: ${crowdSentiment.bullish_percent.toFixed(0)}% Bullish (Skor Sentimen: ${crowdSentiment.sentiment_score > 0 ? "+" : ""}${crowdSentiment.sentiment_score.toFixed(2)}, Buzz: ${crowdSentiment.discussion_velocity_zscore}x)`,
-              foreign_summary: `Kondisi Arus Asing: ${foreignFlowData.yesterdayAnomalyStatus} (${foreignFlowData.yesterdayFlow < 0 ? "-" : "+"}Rp ${(Math.abs(foreignFlowData.yesterdayFlow) / 1000000000).toFixed(1)} Miliar, Z-Score: ${foreignFlowData.yesterdayZScore}σ)`,
-              synthesis:
-                crowdSentiment.divergence_status === "EUPHORIA_DIVERGENCE"
-                  ? "Mayoritas investor ritel menyerap tekanan jual broker institusional. Waspadai potensi jebakan likuiditas ritel (exit liquidity) di area support."
-                  : "Sentimen ritel tertekan kepanikan jangka pendek, namun broker institusi memanfaatkan koreksi harga untuk akumulasi selektif. Fundamental emiten tetap solid.",
-              created_at: new Date().toISOString(),
-            }}
-          />
-        )}
-
+      <StockModeView ticker={upperTicker} brief={brief} glossary={glossary}>
         <div className="w-full bg-brand-red-soft p-space-lg rounded border border-brand-red/50 flex flex-col md:flex-row md:items-center justify-between gap-space-md relative overflow-hidden mb-space-xl">
         <div className="absolute -right-8 -top-8 w-48 h-48 bg-brand-red/10 rounded-full blur-2xl pointer-events-none" />
 
@@ -371,26 +347,15 @@ export default async function StockDetailPage({ params }: Props) {
           <div className="flex flex-col">
             <div className="flex items-center gap-space-xs">
               <span className="font-caption text-caption font-bold tracking-widest text-brand-red uppercase">
-                Sintesis 4 Pilar Composite Intelligence System ({upperTicker})
+                Sintesis 3 Pilar Sectors Engine
               </span>
               <span className="px-1.5 py-0.2 bg-brand-red/30 rounded text-[10px] font-mono text-text-primary">
-                STATUS: {compositeAlert.status}
+                CONFIDENCE: {foreignFlowData.synthesisConfidence}%
               </span>
             </div>
             <p className="font-headline-sm text-headline-sm text-text-primary font-bold mt-1 leading-snug">
-              {compositeAlert.headline || foreignFlowData.synthesisSentence}
+              {foreignFlowData.synthesisSentence}
             </p>
-            {compositeAlert.summary && (
-              <p className="font-body-sm text-body-sm text-text-secondary mt-1">
-                {compositeAlert.summary}
-              </p>
-            )}
-            {compositeAlert.recommendedAction && (
-              <div className="flex items-center gap-2 mt-2 font-body-sm text-text-primary">
-                <span className="material-symbols-outlined text-[16px] text-brand-red">lightbulb</span>
-                <span className="italic text-xs text-text-secondary">Aksi Rekomendasi: <strong className="text-text-primary not-italic">{compositeAlert.recommendedAction}</strong></span>
-              </div>
-            )}
             <div className="flex flex-wrap items-center gap-2 mt-3 font-mono text-[11px]">
               <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-surface-container-lowest/80 rounded border border-border-subtle/40 text-text-primary">
                 <span className="w-1.5 h-1.5 rounded-full bg-data-bullish" />
@@ -581,19 +546,6 @@ export default async function StockDetailPage({ params }: Props) {
         </div>
       </div>
 
-      <div className="flex flex-col gap-space-lg">
-        <CrowdBarometerCard sentiment={crowdSentiment} />
-        <div className="bg-surface-card p-space-lg rounded-xl border border-border-subtle shadow-sm">
-          <div className="flex items-center gap-2 mb-space-md pb-space-sm border-b border-border-subtle">
-            <span className="material-symbols-outlined text-brand-red text-[22px]">forum</span>
-            <h3 className="font-headline-sm text-headline-sm font-bold text-text-primary">
-              Diskusi Komunitas & Analisis Independen ({upperTicker})
-            </h3>
-          </div>
-          <CommunityFeed initialPosts={communityPosts} ticker={upperTicker} />
-        </div>
-      </div>
-
       <div className="p-space-lg bg-surface-card rounded border border-border-subtle">
         <h3 className="font-headline-sm text-headline-sm font-semibold text-text-primary mb-space-md">
           Valuasi Pasar & Target Konsensus Analis
@@ -640,4 +592,3 @@ export default async function StockDetailPage({ params }: Props) {
     </div>
   )
 }
-

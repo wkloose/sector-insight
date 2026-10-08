@@ -30,4 +30,3 @@ export interface AlertFeedItem {
   policyExposure: number
   triggerPillars: ("fundamental" | "sentiment" | "foreign_flow")[]
 }
-

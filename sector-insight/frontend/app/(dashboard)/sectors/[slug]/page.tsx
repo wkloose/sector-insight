@@ -1,7 +1,12 @@
 import React from "react"
 import { Metadata } from "next"
 import Link from "next/link"
-import { getSectorOverview, getSectorNews } from "@/src/features/sectors"
+import {
+  getSectorOverview,
+  getSectorNews,
+  getSectorMovers,
+  SectorStocksTable,
+} from "@/src/features/sectors"
 
 interface SectorDetailPageProps {
   params: Promise<{ slug: string }>
@@ -13,7 +18,7 @@ export async function generateMetadata({ params }: SectorDetailPageProps): Promi
   const overview = await getSectorOverview(slug)
   return {
     title: `Sektor ${overview.sector_name} - SMRS & Momentum`,
-    description: `Analisis mendalam sektor ${overview.sector_name}, arus asing, dan berita industri terkurasi.`,
+    description: `Analisis mendalam sektor ${overview.sector_name}, arus asing, konstituen saham, dan berita industri terkurasi.`,
   }
 }
 
@@ -24,16 +29,18 @@ export default async function SectorDetailPage({
   const { slug } = await params
   const { sub_sector } = await searchParams
 
-  const [overview, news] = await Promise.all([
+  const [overview, news, movers] = await Promise.all([
     getSectorOverview(slug),
     getSectorNews(slug, sub_sector || undefined),
+    getSectorMovers(slug),
   ])
 
+  const topMovers = movers && movers.length > 0 ? movers : overview.top_movers
   const flowMiliar = Math.round(overview.net_foreign_flow / 1000000000)
+  const totalStocks = overview.stocks ? overview.stocks.length : overview.total_companies || 0
 
   return (
     <div className="flex flex-col gap-space-xl w-full pb-space-xl">
-
       <div className="flex items-center gap-2 text-caption text-text-secondary">
         <Link href="/sectors" className="hover:text-brand-red transition-colors">
           Sector Hub
@@ -42,7 +49,7 @@ export default async function SectorDetailPage({
         <span className="text-text-primary font-semibold">{overview.sector_name}</span>
       </div>
 
-      <div className="p-space-lg bg-surface-card rounded-xl border border-border-subtle flex flex-col md:flex-row md:items-center justify-between gap-space-md shadow-sm">
+      <div className="p-space-lg bg-surface-card rounded-xl border border-border-subtle flex flex-col lg:flex-row lg:items-center justify-between gap-space-md shadow-sm">
         <div>
           <div className="flex items-center gap-2">
             <h1 className="font-headline-lg text-headline-lg font-bold text-text-primary">
@@ -57,7 +64,7 @@ export default async function SectorDetailPage({
           </p>
         </div>
 
-        <div className="flex items-center gap-6 bg-surface-container-lowest p-3 rounded-xl border border-border-subtle shrink-0">
+        <div className="flex flex-wrap items-center gap-4 sm:gap-6 bg-surface-container-lowest p-3 rounded-xl border border-border-subtle shrink-0">
           <div className="flex flex-col">
             <span className="text-[10px] uppercase font-bold text-text-secondary">Skor SMRS</span>
             <span className="font-mono font-bold text-headline-metric text-text-primary">
@@ -66,7 +73,7 @@ export default async function SectorDetailPage({
             </span>
           </div>
 
-          <div className="w-[1px] h-10 bg-border-subtle/60" />
+          <div className="hidden sm:block w-[1px] h-10 bg-border-subtle/60" />
 
           <div className="flex flex-col">
             <span className="text-[10px] uppercase font-bold text-text-secondary">Tren 7H</span>
@@ -80,7 +87,7 @@ export default async function SectorDetailPage({
             </span>
           </div>
 
-          <div className="w-[1px] h-10 bg-border-subtle/60" />
+          <div className="hidden sm:block w-[1px] h-10 bg-border-subtle/60" />
 
           <div className="flex flex-col">
             <span className="text-[10px] uppercase font-bold text-text-secondary">Arus Asing</span>
@@ -91,6 +98,16 @@ export default async function SectorDetailPage({
             >
               {flowMiliar >= 0 ? "+" : ""}
               {flowMiliar} M
+            </span>
+          </div>
+
+          <div className="hidden sm:block w-[1px] h-10 bg-border-subtle/60" />
+
+          <div className="flex flex-col">
+            <span className="text-[10px] uppercase font-bold text-text-secondary">Konstituen</span>
+            <span className="font-mono font-bold text-headline-sm text-text-primary">
+              {totalStocks}
+              <span className="text-caption text-text-secondary font-normal ml-0.5">Saham</span>
             </span>
           </div>
         </div>
@@ -133,16 +150,43 @@ export default async function SectorDetailPage({
             Top Movers & Konstituen Penggerak
           </span>
           <div className="flex flex-wrap gap-2">
-            {overview.top_movers.map((mover) => (
-              <span
-                key={mover}
-                className="px-3 py-1 bg-surface-container-lowest rounded-lg border border-border-subtle text-caption font-mono font-bold text-text-primary"
-              >
-                {mover}
-              </span>
-            ))}
+            {topMovers.map((mover) => {
+              const ticker = mover.split(" ")[0]
+              return (
+                <Link
+                  key={mover}
+                  href={`/stock/${ticker}`}
+                  className="px-3 py-1 bg-surface-container-lowest hover:bg-surface-container-high rounded-lg border border-border-subtle text-caption font-mono font-bold text-text-primary hover:text-brand-red transition-colors"
+                >
+                  {mover}
+                </Link>
+              )
+            })}
           </div>
         </div>
+      </div>
+
+      <div className="p-space-lg bg-surface-card rounded-xl border border-border-subtle shadow-sm flex flex-col gap-space-md">
+        <div className="flex items-center justify-between pb-space-sm border-b border-border-subtle">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-brand-red text-[22px]">
+              domain
+            </span>
+            <h2 className="font-headline-sm text-headline-sm font-bold text-text-primary">
+              Koleksi & Kinerja Saham Konstituen: {overview.sector_name}
+            </h2>
+          </div>
+          <span className="text-caption text-text-secondary font-mono">
+            {totalStocks} Emiten Terdata
+          </span>
+        </div>
+
+        <SectorStocksTable
+          stocks={overview.stocks || []}
+          subsectors={overview.subsectors}
+          sectorName={overview.sector_name}
+          sectorSlug={slug}
+        />
       </div>
 
       <div className="p-space-lg bg-surface-card rounded-xl border border-border-subtle shadow-sm flex flex-col gap-3">
@@ -238,4 +282,3 @@ export default async function SectorDetailPage({
     </div>
   )
 }
-

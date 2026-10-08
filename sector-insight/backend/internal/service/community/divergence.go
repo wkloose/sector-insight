@@ -21,7 +21,7 @@ type CommunityAlertDTO struct {
 	CreatedAt      time.Time `json:"created_at"`
 }
 
-func DetectDivergenceStatus(ticker string, css float64, zBuzz float64) string {
+func DetectDivergenceStatus(ticker string, css float64, zBuzz float64, bullishPercent float64) string {
 	upperTicker := strings.ToUpper(ticker)
 
 	var flow model.ForeignFlowAnomaly
@@ -40,11 +40,11 @@ func DetectDivergenceStatus(ticker string, css float64, zBuzz float64) string {
 		return "POM_POM_WARNING"
 	}
 
-	if css >= 0.50 && zForeign <= -2.0 {
+	if (css >= 0.40 || bullishPercent >= 70.0) && zForeign <= -2.0 {
 		return "EUPHORIA_DIVERGENCE"
 	}
 
-	if css <= -0.50 && zForeign >= 2.0 {
+	if (css <= -0.40 || bullishPercent <= 30.0) && zForeign >= 2.0 {
 		return "PANIC_DIVERGENCE"
 	}
 
@@ -61,7 +61,7 @@ func GetAllCommunityAlerts() []CommunityAlertDTO {
 	if len(tickers) == 0 {
 		tickers = []string{"BBRI", "BBCA", "BMRI", "BBNI", "BBTN", "BRIS"}
 	}
-	var alerts []CommunityAlertDTO
+	alerts := []CommunityAlertDTO{}
 
 	for _, t := range tickers {
 		var crowd model.DailyCrowdSentiment

@@ -80,4 +80,3 @@ export const SentimentCard: React.FC<SentimentCardProps> = ({
     </div>
   )
 }
-

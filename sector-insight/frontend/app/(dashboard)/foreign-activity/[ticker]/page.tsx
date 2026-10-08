@@ -5,7 +5,11 @@ import { notFound } from "next/navigation"
 import {
   ForeignFlowChart,
   AnomalyTable,
+  TopForeignMoversCards,
+  AllStocksForeignFlowTable,
   getForeignFlowData,
+  getMarketForeignFlowSummary,
+  getAllStockForeignFlows,
 } from "@/src/features/foreign-flow"
 import { isValidTicker } from "@/src/shared/lib"
 
@@ -23,9 +27,37 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
   const upperTicker = ticker.toUpperCase()
   return {
-    title: `Aktivitas Asing 90 Hari ${upperTicker}`,
+    title: `Aktivitas Asing 90 Hari ${upperTicker} & Arus Asing Indonesia`,
     description: `Deteksi anomali statistik arus dana broker asing dan visualisasi 90 hari ${upperTicker}`,
   }
+}
+
+const QUICK_TICKERS = [
+  "BBCA",
+  "BBRI",
+  "BMRI",
+  "BBNI",
+  "BRIS",
+  "ADRO",
+  "PTBA",
+  "TLKM",
+  "ANTM",
+  "ASII",
+  "GOTO",
+  "ICBP",
+  "KLBF",
+]
+
+function formatIDR(val: number): string {
+  const abs = Math.abs(val)
+  const sign = val >= 0 ? "+" : "-"
+  if (abs >= 1e12) {
+    return `${sign}Rp ${(abs / 1e12).toFixed(2)} T`
+  }
+  if (abs >= 1e9) {
+    return `${sign}Rp ${(abs / 1e9).toFixed(1)} M`
+  }
+  return `${sign}Rp ${abs.toLocaleString("id-ID")}`
 }
 
 export default async function ForeignActivityPage({ params }: Props) {
@@ -34,7 +66,12 @@ export default async function ForeignActivityPage({ params }: Props) {
     notFound()
   }
   const upperTicker = ticker.toUpperCase()
-  const data = await getForeignFlowData(upperTicker)
+
+  const [data, marketSummary, allStocks] = await Promise.all([
+    getForeignFlowData(upperTicker),
+    getMarketForeignFlowSummary(),
+    getAllStockForeignFlows("", "ALL", "ALL", 100),
+  ])
 
   const isAnomaly = Math.abs(data.yesterdayZScore) >= 2.0
   const yesterdayFlowFormatted = `${data.yesterdayFlow < 0 ? "-" : "+"}Rp ${(Math.abs(data.yesterdayFlow) / 1000000000).toFixed(1)} M`
@@ -50,16 +87,53 @@ export default async function ForeignActivityPage({ params }: Props) {
       : "Sintesis Algoritma: Distribusi Arus Normal"
 
   return (
-    <div className="flex flex-col w-full">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-space-md pb-space-lg mb-space-lg border-b border-border-subtle/60">
+    <div className="flex flex-col w-full pb-space-xl gap-space-xl">
+      <div className="p-space-md rounded bg-surface-card border border-border-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-space-md">
+        <div className="flex flex-wrap items-center gap-space-md">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-data-bullish animate-pulse" />
+            <span className="font-caption text-caption text-text-secondary uppercase tracking-wider">
+              Arus Asing Nasional BEI:
+            </span>
+            <span className={`font-mono text-tabular-sm font-bold ${
+              marketSummary.total_net_flow_today >= 0 ? "text-data-bullish" : "text-data-bearish"
+            }`}>
+              {formatIDR(marketSummary.total_net_flow_today)}
+            </span>
+          </div>
+
+          <div className="hidden md:flex items-center gap-2 border-l border-border-subtle pl-space-md text-caption text-text-secondary">
+            <span>Buy: <strong className="text-data-bullish font-mono">Rp {(marketSummary.total_foreign_buy / 1e12).toFixed(2)} T</strong></span>
+            <span>Sell: <strong className="text-data-bearish font-mono">Rp {(marketSummary.total_foreign_sell / 1e12).toFixed(2)} T</strong></span>
+            <span>Partisipasi: <strong className="text-text-primary font-mono">{marketSummary.foreign_participation_percent.toFixed(1)}%</strong></span>
+          </div>
+        </div>
+
+        <Link
+          href="/foreign-activity"
+          className="px-3 py-1.5 rounded bg-surface-container-high hover:bg-brand-red hover:text-text-primary text-text-primary font-caption text-caption font-semibold transition-colors flex items-center gap-1.5 self-start sm:self-auto shrink-0"
+        >
+          <span>Dashboard Seluruh Bursa Indonesia</span>
+          <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+        </Link>
+      </div>
+
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-space-md pb-space-lg border-b border-border-subtle/60">
         <div>
           <div className="flex items-center gap-space-sm mb-1">
+            <Link
+              href="/foreign-activity"
+              className="text-brand-red hover:underline flex items-center gap-1 font-caption text-caption font-semibold"
+            >
+              <span className="material-symbols-outlined text-[14px]">arrow_back</span>
+              <span>Seluruh Aktivitas Asing Indonesia</span>
+            </Link>
+            <span className="text-border-subtle">•</span>
             <Link
               href={`/stock/${upperTicker}`}
               className="text-text-secondary hover:text-text-primary flex items-center gap-1 font-caption text-caption"
             >
-              <span className="material-symbols-outlined text-[14px]">arrow_back</span>
-              <span>Kembali ke Detail {upperTicker}</span>
+              <span>Detail Fundamental {upperTicker}</span>
             </Link>
             <span className="text-border-subtle">•</span>
             <span className="font-mono text-tabular-sm px-2 py-0.5 rounded bg-brand-red-soft text-brand-red font-medium">
@@ -92,7 +166,33 @@ export default async function ForeignActivityPage({ params }: Props) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-space-md mb-space-xl">
+      <div className="p-space-md bg-surface-card rounded border border-border-subtle flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <span className="font-caption text-caption text-text-secondary uppercase tracking-wider">
+            Pilih Saham Lain Untuk Melihat Detail Arus Asing:
+          </span>
+          <span className="font-caption text-[11px] text-text-secondary">
+            Aktif: <strong className="text-brand-red font-mono">{upperTicker}</strong>
+          </span>
+        </div>
+        <div className="flex items-center gap-space-xs overflow-x-auto pb-1">
+          {QUICK_TICKERS.map((t) => (
+            <Link
+              key={t}
+              href={`/foreign-activity/${t}`}
+              className={`px-3 py-1.5 rounded font-mono text-tabular-sm font-semibold transition-colors shrink-0 ${
+                t === upperTicker
+                  ? "bg-brand-red text-text-primary"
+                  : "bg-surface-container text-text-secondary hover:text-text-primary hover:bg-surface-container-high"
+              }`}
+            >
+              {t}
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-space-md">
         <div className={`p-space-lg rounded border flex flex-col justify-between shadow-sm relative overflow-hidden ${
           isAnomaly ? "bg-brand-red-soft border-brand-red/40" : "bg-surface-card border-border-subtle"
         }`}>
@@ -207,11 +307,19 @@ export default async function ForeignActivityPage({ params }: Props) {
         </div>
       </div>
 
-      <div className="mb-space-xl">
+      <div>
+        <div className="flex items-center justify-between mb-space-sm">
+          <h2 className="font-headline-sm text-headline-sm font-semibold text-text-primary">
+            Grafik Riwayat Deviasi Arus Asing (90 Hari): {upperTicker}
+          </h2>
+          <span className="font-caption text-caption text-text-secondary">
+            Deviasi statistik harian terhadap baseline normal
+          </span>
+        </div>
         <ForeignFlowChart data={data.flowPoints} />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-space-lg mb-space-xl">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-space-lg">
         <div className="lg:col-span-8">
           <AnomalyTable anomalies={data.anomalies14d} />
         </div>
@@ -301,7 +409,43 @@ export default async function ForeignActivityPage({ params }: Props) {
           </p>
         </div>
       </div>
+
+      <div className="pt-space-md border-t border-border-subtle/60">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-space-md">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-brand-red text-[20px]">
+              leaderboard
+            </span>
+            <h2 className="font-headline-sm text-headline-sm font-semibold text-text-primary">
+              Perbandingan Pasar: Top Akumulasi & Distribusi Saham Lain di BEI
+            </h2>
+          </div>
+          <span className="font-caption text-caption text-text-secondary">
+            Peta akumulasi asing di luar emiten {upperTicker}
+          </span>
+        </div>
+        <TopForeignMoversCards
+          accumulated={marketSummary.top_accumulated}
+          distributed={marketSummary.top_distributed}
+        />
+      </div>
+
+      <div>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-space-md">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-brand-red text-[22px]">
+              table_chart
+            </span>
+            <h2 className="font-headline-sm text-headline-sm font-semibold text-text-primary">
+              Eksplorasi Seluruh Saham Tercatat di Indonesia
+            </h2>
+          </div>
+          <span className="font-caption text-caption text-text-secondary">
+            Cari dan bandingkan arus modal asing saham lainnya
+          </span>
+        </div>
+        <AllStocksForeignFlowTable stocks={allStocks} />
+      </div>
     </div>
   )
 }
-
