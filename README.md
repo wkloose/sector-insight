@@ -1,17 +1,18 @@
 # Sector Insight: Platform Analisis Pasar Modal dan Rotasi Sektor IDX
 
-Sector Insight adalah platform analisis pasar modal Indonesia (Bursa Efek Indonesia / IDX) yang menggabungkan data resmi dari Sectors API, analisis statistik, kecerdasan buatan (NLP), dan interaksi komunitas investor.
+Sector Insight adalah platform analisis pasar modal Indonesia (Bursa Efek Indonesia / IDX) yang menggabungkan data resmi dari Sectors API, analisis statistik kuantitatif, kecerdasan buatan (NLP), dan interaksi komunitas investor.
 
 Platform ini menggunakan pendekatan analisis dari atas ke bawah (top-down analysis):
 1. Memetakan kondisi makro dan perputaran dana di 11 sektor resmi IDX-IC.
 2. Memeriksa saham-saham penggerak utama di setiap sektor.
 3. Melakukan analisis mendalam pada saham perbankan melalui 4 pilar data: fundamental, arus transaksi broker asing, sentimen berita, dan opini komunitas.
+4. Menyediakan mesin komparasi saham head-to-head multi-pilar dengan 6 Model Kuantitatif Berwawasan Baru (Derived Quantitative Insights) untuk pengambilan keputusan alokasi portofolio.
 
 ---
 
 ## 1. Kesesuaian dengan Dokumen Spesifikasi (PRD)
 
-Seluruh kebutuhan dari 6 dokumen spesifikasi (PRD) telah selesai dikembangkan dan terintegrasi penuh:
+Seluruh kebutuhan dari 6 dokumen spesifikasi (PRD) dan fitur inovasi komparasi analitis telah selesai dikembangkan dan terintegrasi penuh:
 
 | No | Dokumen Spesifikasi | Fitur Utama | Status |
 |:---:|:---|:---|:---:|
@@ -21,6 +22,7 @@ Seluruh kebutuhan dari 6 dokumen spesifikasi (PRD) telah selesai dikembangkan da
 | 4 | PRD hackaton sector (3).docx | Forum Diskusi Komunitas dan Peringatan Divergensi (Sistem reputasi karma berbobot, HotRank, deteksi jebakan ritel vs asing) | Selesai |
 | 5 | PRD hackaton sector (4).docx | Klasifikasi 11 Sektor IDX-IC dan Skor Rotasi Sektor (Heatmap, SMRS Score, kurasi berita sektoral, top movers) | Selesai |
 | 6 | PRD hackaton sector (5).docx | Ringkasan Ramah Pemula Berbasis AI (Mode Pemula vs Mode Pro, indikator lampu status, ringkasan 30 detik, 3 kelebihan vs 3 risiko, kamus istilah) | Selesai |
+| 7 | Fitur Inovasi Unggulan | Komparasi Saham Head-to-Head & Derived Quantitative Insight Engine (CIS, Value-Momentum, ICL, RAAR, AGP, MoS) | Selesai |
 
 ---
 
@@ -41,11 +43,13 @@ graph TD
         FLOW["Detektor Anomali Foreign Flow (Z-Score)"]
         KARMA["Sistem Kredibilitas Komunitas (Karma)"]
         ALERT["Mesin Peringatan 4 Pilar dan Divergensi"]
+        IDX_UNIV["Semesta 941 Saham IDX & Quote Engine"]
     end
 
     subgraph AI["Layanan AI Python - Port 8000"]
         NLP_SENT["Klasifikasi Sentimen Berita"]
         NLP_BRIEF["Pembuat Ringkasan Ramah Pemula"]
+        NLP_COMPARE["Engine Komparasi Saham Multi-Pilar"]
     end
 
     subgraph FRONTEND["Frontend Next.js - Port 3000"]
@@ -53,19 +57,26 @@ graph TD
         UI_COMMUNITY["Halaman Forum Komunitas (/community)"]
         UI_STOCK["Halaman Detail Saham: Mode Pemula dan Pro (/stock/ticker)"]
         UI_DASHBOARD["Dashboard Utama dan Peringatan (/dashboard)"]
+        UI_COMPARE["Komparasi Saham & Derived Insight Engine (/compare)"]
     end
 
     SEC --> SMRS
     SEC --> FUND
     SEC --> FLOW
     SEC --> NLP_SENT
+    SEC --> IDX_UNIV
     COM --> KARMA
     NLP_SENT --> SMRS
     NLP_SENT --> ALERT
+    NLP_SENT --> NLP_COMPARE
     FUND --> ALERT
+    FUND --> UI_COMPARE
     FLOW --> ALERT
+    FLOW --> UI_COMPARE
     KARMA --> ALERT
     ALERT --> NLP_BRIEF
+    IDX_UNIV --> UI_COMPARE
+    NLP_COMPARE --> UI_COMPARE
     SMRS --> UI_SECTORS
     KARMA --> UI_COMMUNITY
     NLP_BRIEF --> UI_STOCK
@@ -122,15 +133,26 @@ graph TD
 * Memisahkan berita korporasi yang spesifik ke satu perusahaan dari berita regulasi makro (kebijakan Bank Indonesia dan aturan OJK).
 * Menampilkan artikel dengan kekuatan sinyal sentimen tertinggi sebagai rujukan verifikasi data.
 
+### G. Komparasi Saham Head-to-Head & Derived Quantitative Insight Engine
+* **Pemilihan Saham Dinamis**: Pengguna dapat membandingkan 2 hingga 3 emiten secara langsung dengan modal selector saham interaktif yang terhubung ke semesta 941 saham IDX.
+* **6 Model Kuantitatif Berwawasan Baru (Derived Quantitative Insights)**:
+  1. **Composite Investment Score (CIS)**: Model multi-faktor pembobotan dinamis (0–100) yang memadukan Pilar Fundamental (35%), Valuasi (25%), Momentum Arus Dana Asing (25%), dan Sentimen (15%).
+  2. **Value-Momentum Convergence Index**: Mendeteksi keselarasan antara diskon valuasi fundamental dan akselerasi akumulasi modal institusi asing (*Konvergensi Bullish*, *Divergensi Positif*, *Divergensi Negatif*, *Konvergensi Bearish*).
+  3. **Institutional Conviction Level (ICL)**: Level keyakinan smart money institusi asing (*Sangat Tinggi*, *Tinggi*, *Moderat*, *Rendah*) berbasis normalisasi Z-Score dan net foreign flow.
+  4. **Risk-Adjusted Attractiveness Ratio (RAAR)**: Rasio daya tarik disesuaikan risiko neraca keuangan emiten dan volatilitas transaksi modal asing.
+  5. **Alpha Generation Potential (AGP)**: Probabilitas menghasilkan imbal hasil di atas rata-rata pasar (*alpha*) ditopang perpaduan undervaluation, katalis sentimen, dan backing institusi.
+  6. **Margin of Safety Estimator (MoS)**: Estimasi diskon harga terhadap PBV wajar yang disesuaikan dengan profitabilitas ROE dan moat fundamental perusahaan.
+* **Visualisasi Multi-Dimensi**: Radar chart interaktif 5 dimensi, tabel metrik komparatif head-to-head, dan Leader Cards penentu pemenang terbaik (*Best Overall*, *Best Value*, *Best Momentum*, *Lowest Risk*, *Highest Alpha*).
+* **Laporan Vonis Komparasi Terstruktur**: Analisis komprehensif yang memuat ringkasan eksekutif, penetapan emiten pemenang (*verdict winner*), telaah mendalam per pilar, poin kelebihan vs risiko, serta rekomendasi alokasi taktis untuk profil investor (*Value*, *Growth*, atau *Dividend*).
+
 ---
 
 ## 4. Struktur Direktori
 
 ```
 Sector/
-|-- PRD_IMPLEMENTATION_TRACKER.md     # Tabel pelacakan seluruh 53 butir pekerjaan
+|-- PRD_IMPLEMENTATION_TRACKER.md     # Tabel pelacakan seluruh butir pekerjaan
 |-- README.md                          # Dokumentasi utama proyek
-|-- PRD hackaton sector*.docx          # Berkas spesifikasi resmi PRD
 |
 `-- sector-insight/
     |-- verify_scenarios.py            # Skrip pengujian otomatis 11 endpoint
@@ -138,22 +160,42 @@ Sector/
     |
     |-- backend/                       # Server utama (Go 1.24)
     |   |-- cmd/api/main.go            # Titik masuk aplikasi dan penjadwal tugas
+    |   |-- sector_insight.db          # Database SQLite lokal terintegrasi (pre-populated)
     |   `-- internal/
-    |       |-- client/                # Klien Sectors API dan AI Service
+    |       |-- client/
+    |       |   |-- sectors/           # Klien resmi Sectors API v2
+    |       |   |-- ai/                # Klien komunikasi ke AI Service
+    |       |   `-- idx/               # Semesta 941 saham IDX & metadata resmi
     |       |-- database/              # Koneksi database PostgreSQL dan SQLite
-    |       |-- handler/               # Handler endpoint REST API
+    |       |-- handler/               # Handler endpoint REST API (market, sectors, foreignflow, dll.)
     |       |-- jobs/                  # Penjadwal tugas otomatis (cron scheduler)
     |       |-- model/                 # Definisi tabel database
-    |       `-- service/               # Logika perhitungan SMRS, fundamental, komunitas
+    |       `-- service/               # Logika perhitungan SMRS, foreign flow, fundamental, komunitas
     |
-    |-- ai-service/                    # Layanan NLP (Python FastAPI)
+    |-- ai-service/                    # Layanan NLP & Komparasi Kuantitatif (Python FastAPI)
     |   |-- requirements.txt
-    |   `-- app/                       # Rute API dan template analisis teks
+    |   `-- app/
+    |       |-- api/routes.py          # Endpoint analisis sentimen dan komparasi saham (/compare-stocks)
+    |       |-- models/schemas.py      # Skema request & response komparasi multi-pilar
+    |       `-- services/
+    |           |-- analyzer.py        # Layanan pemrosesan teks NLP
+    |           `-- prompts.py         # Template prompt analitis komparasi 6 model kuantitatif
     |
-    `-- frontend/                      # Antarmuka web (Next.js 16)
-        |-- app/                       # Rute halaman web (/sectors, /community, /stock, dll.)
+    `-- frontend/                      # Antarmuka web (Next.js 16 + React 19)
+        |-- app/                       # Rute halaman web (/sectors, /community, /compare, /stock, dll.)
         `-- src/
-            |-- features/              # Modul antarmuka per fitur
+            |-- entities/              # Entitas domain (stock, broker)
+            |-- features/              # Modul antarmuka per fitur:
+            |   |-- compare/           # Modul komparasi saham head-to-head & insight engine:
+            |   |   |-- components/    # StockComparisonHub, InsightDashboard, ComparisonVerdictReport, StockSelectorModal
+            |   |   |-- lib/           # insightEngine.ts (Kalkulasi 6 model kuantitatif: CIS, Convergence, ICL, RAAR, AGP, MoS)
+            |   |   `-- types/         # Tipe data profil komparasi saham dan metrik analitis
+            |   |-- beginner-brief/    # Mode Pemula vs Pro, lampu status, 3 kelebihan vs 3 risiko, kamus istilah
+            |   |-- community/         # Forum diskusi, voting karma, barometer sentimen, alert divergensi
+            |   |-- sectors/           # Heatmap 11 sektor IDX-IC, leaderboard, skor SMRS
+            |   |-- foreign-flow/      # Pemantauan arus asing 11 sektor, anomali Z-Score, data broker
+            |   |-- fundamental/       # Screener fundamental dan grafik radar perbankan
+            |   `-- composite-alert/   # Mesin peringatan gabungan 4 pilar
             `-- shared/                # Komponen bersama dan tata letak dasar
 ```
 
@@ -236,6 +278,13 @@ VERIFICATION SUMMARY: 11/11 ENDPOINTS PASSED (100% SUCCESS)
 
 | Modul | Metode | Alamat Endpoint | Keterangan |
 | :--- | :---: | :--- | :--- |
+| **Komparasi Saham** | POST | `/api/v1/compare-stocks` | Analisis mendalam komparasi 2-3 emiten dengan 6 model analitis kuantitatif |
+| | GET | `/api/v1/compare/profile` | Profil perbandingan saham multi-pilar (fundamental, flow, sentimen) |
+| | POST | `/api/v1/compare/ai` | Endpoint proxy orkestrasi perbandingan saham |
+| **Pasar & Semesta IDX** | GET | `/api/v1/market/summary` | Ringkasan kondisi pasar IDX, IHSG real-time, dan status |
+| | GET | `/api/v1/stocks/quotes` | Daftar quote harga dan pergerakan emiten |
+| | GET | `/api/v1/stocks/universe` | Semesta 941 saham resmi Bursa Efek Indonesia |
+| | GET | `/api/v1/stocks/sectors` | Daftar sektor dan jumlah saham emiten per sektor |
 | **Sektor (PRD 4)** | GET | `/api/v1/sectors` | Daftar 11 sektor resmi IDX-IC dan subsektor |
 | | GET | `/api/v1/sectors/ranking` | Peringkat momentum SMRS seluruh sektor |
 | | GET | `/api/v1/sectors/alerts` | Peringatan rotasi modal antar sektor |
@@ -250,7 +299,9 @@ VERIFICATION SUMMARY: 11/11 ENDPOINTS PASSED (100% SUCCESS)
 | | GET | `/api/v1/glossary` | Daftar kamus istilah keuangan dengan analogi awam |
 | **Fundamental (PRD 1)** | GET | `/api/v1/fundamental-score` | Peringkat kesehatan fundamental saham perbankan |
 | | GET | `/api/v1/fundamental-score/{ticker}` | Rincian nilai dari 7 parameter fundamental |
-| **Foreign Flow (PRD 2)** | GET | `/api/v1/foreign-flow/{ticker}` | Data historis arus dana asing 90 hari |
+| **Foreign Flow (PRD 2)** | GET | `/api/v1/foreign-flow/market` | Ringkasan perputaran arus modal asing 11 sektor nasional |
+| | GET | `/api/v1/foreign-flow/stocks` | Peringkat akumulasi & distribusi modal asing seluruh saham |
+| | GET | `/api/v1/foreign-flow/{ticker}` | Data historis arus dana asing 90 hari |
 | | GET | `/api/v1/foreign-flow/summary` | Daftar saham yang mengalami transaksi anomali |
 | **Sentimen (PRD 0)** | GET | `/api/v1/sentiment/{ticker}` | Nilai sentimen perusahaan dan dampak kebijakan makro |
 | **Peringatan 4 Pilar** | GET | `/api/v1/composite-alert/summary` | Ringkasan status gabungan 4 pilar seluruh saham |
@@ -262,4 +313,4 @@ VERIFICATION SUMMARY: 11/11 ENDPOINTS PASSED (100% SUCCESS)
 Aplikasi ini dibangun dengan mengikuti ketentuan kepatuhan pasar modal dan aturan kompetisi:
 * **Tujuan Informasi dan Edukasi**: Seluruh skor, label status, dan peringatan disajikan sebagai bahan pertimbangan analisis dan edukasi, bukan merupakan ajakan membeli atau menjual instrumen investasi tertentu.
 * **Tanpa Eksekusi Otomatis**: Sistem tidak menyediakan fitur jual beli saham otomatis untuk mematuhi regulasi bursa.
-* **Berdasarkan Data Riil**: Seluruh ringkasan yang dihasilkan modul AI didasarkan langsung pada data faktual platform tanpa asumsi yang tidak berdasar.
+* **Berdasarkan Data Riil**: Seluruh ringkasan yang dihasilkan modul analitik didasarkan langsung pada data faktual platform tanpa asumsi yang tidak berdasar.
