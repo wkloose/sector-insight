@@ -310,6 +310,45 @@ Pastikan lingkungan lokal Anda telah terpasang:
 
 ---
 
+### Panduan Mendapatkan API Key (Opsional - Mode Data Live)
+
+> [!NOTE]
+> **Aplikasi dapat langsung berjalan 100% tanpa API Key** karena seluruh data 941 saham IDX, 11 sektor, foreign flow, fundamental, dan analisis komparatif sudah terisi lengkap di database SQLite bawaan (`sector_insight.db`) serta dilengkapi mesin kalkulasi analitis kuantitatif otomatis.
+> Pengisian API Key bersifat opsional jika Anda ingin mengaktifkan sinkronisasi laporan finansial terbaru secara *live* dari Sectors API dan analisis naratif via Google Gemini.
+
+#### 1. Cara Mendapatkan Sectors API Key
+1. Buka situs resmi Sectors: **[https://sectors.app/](https://sectors.app/)**
+2. Klik tombol **Login** atau **Sign Up** (dapat menggunakan akun Google atau GitHub).
+3. Buka menu **API Keys** di Dashboard: **[https://sectors.app/api-keys](https://sectors.app/api-keys)**
+4. Klik **Create New Key** dan salin API Key yang tertera.
+5. Buat file `.env` di folder `sector-insight/backend/` (salin dari `.env.example`):
+   ```env
+   PORT=8080
+   SECTORS_API_KEY=sectors_live_xxxxxxxxxxxxxxxxxxxx
+   AI_SERVICE_URL=http://localhost:8000
+   ```
+
+#### 2. Cara Mendapatkan Google Gemini API Key (Gratis)
+1. Buka portal Google AI Studio: **[https://aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)**
+2. Login menggunakan akun Google Anda.
+3. Klik tombol **Create API Key**.
+4. Pilih project Google Cloud atau buat project baru secara instan.
+5. Salin token API Key yang dihasilkan.
+6. Buat file `.env` di folder `sector-insight/ai-service/` (salin dari `.env.example`):
+   ```env
+   PORT=8000
+   GEMINI_API_KEY=AIzaSyxxxxxxxxxxxxxxxxxxxxxxx
+   MODEL_NAME=gemini-2.5-flash
+   ```
+
+#### 3. Konfigurasi Frontend (Opsional)
+Jika backend berjalan di port standar `8080`, frontend otomatis terhubung tanpa konfigurasi tambahan. Jika ingin mengubah alamat backend secara spesifik, buat file `sector-insight/frontend/.env.local`:
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8080
+```
+
+---
+
 ## 6. Pengujian dan Verifikasi Otomatis
 
 Proyek ini menyediakan skrip verifikasi otomatis `verify_scenarios.py` untuk menguji kesiapan seluruh endpoint API yang mencakup keenam dokumen PRD:

@@ -127,6 +127,23 @@ npm run dev -- -p 3000
 
 ---
 
+### Panduan Mendapatkan API Key (Opsional - Mode Data Live)
+
+> **Catatan**: Aplikasi dapat langsung dijalankan tanpa API Key karena seluruh data telah terisi di SQLite bawaan (`sector_insight.db`). Pengisian API Key bersifat opsional untuk mengaktifkan pembaruan data live.
+
+1. **Sectors API Key**:
+   * Kunjungi: **[https://sectors.app/](https://sectors.app/)**
+   * Buat key di: **[https://sectors.app/api-keys](https://sectors.app/api-keys)**
+   * Masukkan ke file `backend/.env`: `SECTORS_API_KEY=sectors_live_xxxx...`
+2. **Google Gemini API Key (Gratis)**:
+   * Kunjungi: **[https://aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)**
+   * Klik **Create API Key**
+   * Masukkan ke file `ai-service/.env`: `GEMINI_API_KEY=AIzaSyxxxx...`
+3. **Frontend (Opsional)**:
+   * Masukkan ke file `frontend/.env.local`: `NEXT_PUBLIC_API_URL=http://localhost:8080`
+
+---
+
 ## 3. Pengujian Sistem Secara Otomatis
 
 Untuk memverifikasi bahwa seluruh endpoint API dari keenam dokumen PRD berfungsi dengan baik, jalankan skrip berikut:
